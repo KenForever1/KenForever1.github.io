@@ -1,5 +1,4 @@
 ---
-layout: advent
 title: Advent of code 2020 -- 登机座位问题
 date: 2021-11-06 22:55:17
 tags:
