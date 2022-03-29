@@ -15,3 +15,5 @@ https://github.com/yanfeizhang/coder-kung-fu
 [codedump](https://www.codedump.info/)
 
 [fasterthanli](https://fasterthanli.me/)
+
+https://liujiacai.net/
