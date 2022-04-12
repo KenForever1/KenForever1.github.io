@@ -17,3 +17,5 @@ https://github.com/yanfeizhang/coder-kung-fu
 [fasterthanli](https://fasterthanli.me/)
 
 https://liujiacai.net/
+
+https://blog.adamchalmers.com/
