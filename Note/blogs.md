@@ -19,3 +19,7 @@ https://github.com/yanfeizhang/coder-kung-fu
 https://liujiacai.net/
 
 https://blog.adamchalmers.com/
+
+https://hsqstephenzhang.github.io/
+
+https://www.ihcblog.com/
