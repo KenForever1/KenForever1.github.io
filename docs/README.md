@@ -25,6 +25,12 @@ It's what you do right now that makes a difference！
 - [gdb调试core文件](./Linux/gdb调试core文件.md)
 - [在Linux上编译Windows平台的Rust程序](./Rust/在Linux上编译Windows平台的Rust程序.md)
 
+## PyQt5
+- [pyqt5+eric6+pycharm](./Qt/pyqt5%2Beric6%2Bpycharm.md)
+- [pyqt5-tableWidget](./Qt/pyqt5-tableWidget.md)
+- [pyqt5-add-resource-file](./Qt/pyqt5-add-resource-file.md)
+- [pyqt5-package-to-deb](./Qt/pyqt5-package-to-deb.md)
+
 ## vim
 - [如何更新neovim以及安装指定版本](./vim/如何更新neovim以及安装指定版本.md)
 - [如何调试vimscript程序](./vim/如何调试vimscript程序.md)
