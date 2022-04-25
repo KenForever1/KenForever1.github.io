@@ -26,7 +26,7 @@ It's what you do right now that makes a difference！
 - [在Linux上编译Windows平台的Rust程序](./Rust/在Linux上编译Windows平台的Rust程序.md)
 
 ## PyQt5
-- [pyqt5+eric6+pycharm](./Qt/pyqt5%2Beric6%2Bpycharm.md)
+- [pyqt5-eric6-pycharm](./Qt/pyqt5-eric6-pycharm.md)
 - [pyqt5-tableWidget](./Qt/pyqt5-tableWidget.md)
 - [pyqt5-add-resource-file](./Qt/pyqt5-add-resource-file.md)
 - [pyqt5-package-to-deb](./Qt/pyqt5-package-to-deb.md)
