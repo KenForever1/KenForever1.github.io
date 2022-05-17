@@ -32,3 +32,5 @@ https://wanghenshui.github.io/
 
 #### 无锁队列
 https://github.com/mutouyun/cpp-ipc
+
+https://www.cnblogs.com/gaochundong/p/lock_free_programming.html
