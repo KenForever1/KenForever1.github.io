@@ -34,3 +34,5 @@ https://wanghenshui.github.io/
 https://github.com/mutouyun/cpp-ipc
 
 https://www.cnblogs.com/gaochundong/p/lock_free_programming.html
+
+https://moodycamel.com/
