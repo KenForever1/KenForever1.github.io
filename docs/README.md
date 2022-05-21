@@ -14,6 +14,7 @@ It's what you do right now that makes a difference！
 
 ## Navigations
 - [SteveForever's github](https://github.com/kktao)
+- [SteveForever's CSDN](https://blog.csdn.net/SteveForever)
 
 ## notes
 
