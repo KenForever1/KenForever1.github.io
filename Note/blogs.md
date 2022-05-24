@@ -38,3 +38,5 @@ https://www.cnblogs.com/gaochundong/p/lock_free_programming.html
 https://moodycamel.com/
 
 https://www.1024cores.net/home/scalable-architecture/case-study-actor-scheduler
+
+https://github.com/inkooboo/thread-pool-cpp
