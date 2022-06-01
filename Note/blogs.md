@@ -40,3 +40,7 @@ https://moodycamel.com/
 https://www.1024cores.net/home/scalable-architecture/case-study-actor-scheduler
 
 https://github.com/inkooboo/thread-pool-cpp
+
+https://www.cnblogs.com/shines77/p/4192787.html
+
+https://blog.nowcoder.net/raki7
