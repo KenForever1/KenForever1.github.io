@@ -23,3 +23,8 @@ epoll不能监听文件描述符，因为epoll_ctl函数中需要fd实现poll函
 
 ### 网络
 kcp quic http2
+
+
+### 设计模式
+
+单例：https://ost.51cto.com/posts/670
