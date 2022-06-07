@@ -11,3 +11,15 @@ bthread
 
 ### 3.inotify
 文件监听
+
+### io_uring
+
+### epoll
+epoll不能监听文件描述符，因为epoll_ctl函数中需要fd实现poll函数，而ext4文件系统没有实现此poll函数
+
+### systemtap
+
+### ebpf
+
+### 网络
+kcp quic http2
