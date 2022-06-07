@@ -40,3 +40,5 @@ c++ 单例模式
 (3) 原子指针变量，加锁，std::atomic(T *); 为了优化效率，采用 acquire, release。
 (4) std::call_once, std::once_flag 
 (5) 静态局部变量，保证了线程之间的顺序
+
+适配器，装饰者，观察者，外观模式
