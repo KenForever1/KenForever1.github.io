@@ -22,8 +22,12 @@ epoll不能监听文件描述符，因为epoll_ctl函数中需要fd实现poll函
 ### ebpf
 
 ### 网络
-kcp quic http2
+kcp:
+https://luyuhuang.tech/2020/12/09/kcp.html
+https://www.codedump.info/post/20201105-kcp/
 
+quic(http3):
+http2:
 
 ### 设计模式
 
