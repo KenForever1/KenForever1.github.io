@@ -13,8 +13,9 @@
 It's what you do right now that makes a difference！
 
 ## Navigations
-- [SteveForever's github](https://github.com/kktao)
-- [SteveForever's CSDN](https://blog.csdn.net/SteveForever)
+<!-- Ken is Kenneth Lane Thompson, Dmr is Dennis MacAlistair Ritchie. Pay tribute to their work. -->
+- [KenForever's github](https://github.com/kktao)
+<!-- - [KenForever's CSDN](https://blog.csdn.net/DmrForever) -->
 
 ## notes
 
