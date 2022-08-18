@@ -45,4 +45,8 @@ https://www.cnblogs.com/shines77/p/4192787.html
 
 https://blog.nowcoder.net/raki7
 
+#### Linux
+
 https://arthurchiao.art/
+
+http://lishiwen4.github.io/linux/vdso-and-syscall
