@@ -51,6 +51,10 @@ https://arthurchiao.art/
 
 http://lishiwen4.github.io/linux/vdso-and-syscall
 
+http://linuxperf.com/
+
+https://www.zhihu.com/people/lan-xin-yu
+
 #### C++
 
 https://zsmj2017.tech/
