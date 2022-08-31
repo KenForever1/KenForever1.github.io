@@ -59,6 +59,8 @@ http://www.wowotech.net/
 
 https://www.beikejiedeliulangmao.top/categories/Linux/page/2/
 
+http://husharp.today/tag/#Linux
+
 #### C++
 
 https://zsmj2017.tech/
