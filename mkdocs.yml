@@ -1,0 +1,21 @@
+site_name: "KenForever1's blog"
+
+# site_url: "http://<domain>:<port>/<project>"
+
+markdown_extensions:
+
+  - toc:
+
+      permalink: True
+
+  - footnotes
+
+  - tables
+
+theme:
+
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+  language: zh
