@@ -41,14 +41,14 @@ theme:
   language: zh
 
 extra:
-  social:
-    - type: 'github'
-      link: 'https://github.com/KenForever1'
-    - type: '知乎'
-      link: 'https://www.zhihu.com/people/steveforever'
+  # social:
+  #   - type: 'github'
+  #     link: 'https://github.com/KenForever1'
+  #   - type: '知乎'
+  #     link: 'https://www.zhihu.com/people/steveforever'
   
   disqus: 'KenForever1'
 
 plugins:
   - search
-  - social
+  # - social

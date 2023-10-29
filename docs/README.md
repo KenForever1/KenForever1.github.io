@@ -16,6 +16,7 @@ It's what you do right now that makes a difference！
 <!-- Ken is Kenneth Lane Thompson, Dmr is Dennis MacAlistair Ritchie. Pay tribute to their work. -->
 - [KenForever's github](https://github.com/KenForever1)
 <!-- - [KenForever's CSDN](https://blog.csdn.net/DmrForever) -->
+- [知乎](https://www.zhihu.com/people/steveforever)
 
 ## notes
 
