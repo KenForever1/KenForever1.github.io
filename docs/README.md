@@ -24,7 +24,7 @@ It's what you do right now that makes a difference！
 - [如何实现文件管理器的前进-回退按钮逻辑](./notes/如何实现文件管理器的前进-回退按钮逻辑.md)
 - [ctypes地址传递截断问题](./FFI/ctypes地址传递截断问题.md)
 - [内存检测及调试工具](./Linux/内存检测及调试工具.md)
-- [gdb调试core文件](./Linux/gdb调试core文件.md)
+- [gdb调试core文件](./Linux/gdb/gdb调试core文件.md)
 - [在Linux上编译Windows平台的Rust程序](./Rust/在Linux上编译Windows平台的Rust程序.md)
 
 ## PyQt5
