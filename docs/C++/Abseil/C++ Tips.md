@@ -119,7 +119,7 @@ string_view::size_type string_view::find_first_of(
 }
 ```
 根据查找字符的长度，如果长度==1，直接查找，不等于1，通过LookupTable进行索引，快速查找。
-## + operator和strCat
+## operator和strCat
 ```cpp
 std::string foo = LongString1();
 std::string bar = LongString2();

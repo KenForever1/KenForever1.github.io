@@ -2,15 +2,35 @@ site_name: "KenForever1's blog"
 
 # site_url: "http://<domain>:<port>/<project>"
 
+# Extensions
 markdown_extensions:
-
+  - admonition
+  - codehilite:
+      guess_lang: false
+      linenums: false
   - toc:
-
-      permalink: True
-
+      permalink: true
   - footnotes
+  - meta
+  - def_list
+  - pymdownx.arithmatex
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.critic
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_generator: !!python/name:pymdownx.emoji.to_png
+  - pymdownx.inlinehilite
+  - pymdownx.magiclink
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences
+  - pymdownx.tasklist
+  - pymdownx.tilde
 
-  - tables
+extra_javascript:
+  - 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML'
 
 theme:
 
@@ -19,3 +39,15 @@ theme:
     - navigation.tabs
     - navigation.tabs.sticky
   language: zh
+
+extra:
+  social:
+    - type: 'github'
+      link: 'https://github.com/KenForever1'
+    - type: '知乎'
+      link: 'https://www.zhihu.com/people/steveforever'
+  
+  disqus: 'KenForever1'
+
+plugins:
+  - search
