@@ -1,0 +1,1 @@
+[redhat develop doc](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/developer_guide/debugging-running-application#enabling-debugging_getting-debuginfo-gdb)
