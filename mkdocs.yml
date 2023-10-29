@@ -51,5 +51,4 @@ extra:
 
 plugins:
   - search
-  # - social
-  - material/meta
+  # - material/meta
