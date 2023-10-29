@@ -70,6 +70,10 @@ Branch选择: gh-pages, /root .
 
 经过以上设置,只要更新了项目文件,进行commit push后,就会触发ci,自动部署blog.
 
+## 为blog添加评论系统
+
+为blog添加评论系统，可以参考这篇文章https://fengchao.pro/blog/comment-system-with-giscus/。
+
 ## 参考
 [MkDocs 快速上手指南](https://sspai.com/prime/story/mkdocs-primer)
 [publishing-your-site](https://squidfunk.github.io/mkdocs-material/publishing-your-site/#with-github-actions-material-for-mkdocs)

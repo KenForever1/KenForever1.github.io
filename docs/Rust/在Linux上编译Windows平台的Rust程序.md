@@ -1,7 +1,3 @@
----
-comments: true
----
-
 本文以在linux上编译windows上可执行rust tui example程序为例，记录rust跨平台编译过程。
 [tui-rs](https://github.com/fdehau/tui-rs)是一个Rust库，用于构建丰富的终端用户界面和仪表盘。
 
