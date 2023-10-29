@@ -52,4 +52,4 @@ extra:
 plugins:
   - search
   # - social
-  - material/meta
+  - meta
