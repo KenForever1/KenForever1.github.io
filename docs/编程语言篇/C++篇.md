@@ -323,7 +323,7 @@ gcc test.c -Xlinker -Map=my.map
 
 ## 六大金刚
 [https://modern-cpp.readthedocs.io/zh_CN/latest/gang_of_6.html#id7](https://modern-cpp.readthedocs.io/zh_CN/latest/gang_of_6.html#id7)
-```
+```cpp
 // Example program
 #include <iostream>
 struct Foo {
@@ -373,7 +373,7 @@ Bar bar2{std::move(bar)};
 
 
 ## C++ 变量初始化
-```
+```cpp
 #include <iostream>
 class Config{
     public:
