@@ -2,7 +2,6 @@ name: ci
 on:
   push:
     branches:
-      - master 
       - main
 permissions:
   contents: write
@@ -11,15 +10,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      # - uses: actions/setup-python@v4
+      #   with:
+      #     python-version: 3.x
+      - name: Install Python3
+        uses: actions/setup-python@v5
         with:
-          python-version: 3.x
+          python-version: '3.11'
+      - name: Install requirements
+        run: pip3 install requests python-slugify pytz PyYaml
+
       - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           key: mkdocs-material-${{ env.cache_id }}
           path: .cache
           restore-keys: |
             mkdocs-material-
-      - run: pip install mkdocs-material mkdocs-material-extensions
+      - run: pip install -r requirements.txt
+      # - run: pip install mkdocs-material mkdocs-material-extensions
       - run: mkdocs gh-deploy --force

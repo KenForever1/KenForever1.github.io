@@ -21,5 +21,7 @@ It's what you do right now that makes a difference！
 <!-- - [KenForever's CSDN](https://blog.csdn.net/DmrForever) -->
 - [知乎](https://www.zhihu.com/people/steveforever)
 
-!!! note "这是 note 类型的提示框"
-提示：更多精彩内容记得关注我啊
+!!! Tip: Remember to follow me for more exciting content.
+
+## Thanks
+this blog theme is inspired by [Knowledge-Garden](https://gh-pages.weiyan.cc/)。
