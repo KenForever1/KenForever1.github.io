@@ -26,7 +26,7 @@ comments: true
 ## 一些文章
 
 + [300行实现一个BoundedSPSCQueue](./blog/posts/300行实现一个BoundedSPSCQueue.md)
-+ [helix-gpt如何实现AI code以及如何调试?](./blog/posts/helix-gpt如何实现AI%20code以及如何调试?.md)
++ [helix-gpt如何实现AI code以及如何调试?](./blog/posts/helix-gpt如何实现AIcode以及如何调试?.md)
 + [llama中的GGUF格式如何快速加载模型文件？](https://zhuanlan.zhihu.com/p/711237443)
 + [rust如何实现一个Tcp隧道工具](https://zhuanlan.zhihu.com/p/676432293)
 + [更多...](https://kenforever1.github.io/blog/)
