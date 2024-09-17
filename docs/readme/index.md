@@ -6,14 +6,6 @@ updated: 2024-09-06
 ---
 
 
-## 关于我
-我是，我目前，
-
-## 找到我
-知乎，公众号，
-
-
-
 
 
 <script src="https://giscus.app/client.js"
