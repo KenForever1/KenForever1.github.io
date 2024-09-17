@@ -1,7 +1,4 @@
-title: "专栏"
-order: asc
-order_by: title
+title: "我的专栏"
 
 nav:
-    - mlir学习之旅: mlir
-    - llama多少也得会点: llama
+    - 我的专栏: KenForever
