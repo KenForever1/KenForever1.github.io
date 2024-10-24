@@ -8,12 +8,19 @@ labels: []
 ---
 
 今天看了一下OpenAI的api文档，python api当然是最常用的。看了一些推荐的其它语言的API。比如:
+
 + cpp实现：[D7EAD/liboai](https://github.com/D7EAD/liboai)
+
 + rust实现：[64bit/async-openai](https://github.com/64bit/async-openai)
+
 你可以学习到：
+
 + 如何用C++、rust封装openai api
+
 + 如何实现一个基于大模型的音乐搜索app
+
 + 如何自己通过curl库封装一个不错的网络库
+
 简直太美妙了！！！  
 
 <!-- more -->
@@ -128,7 +135,7 @@ void liboai::netimpl::Session::PrepareGet() {
 
 采用tokio的实现的一个异步库哈，api也很清晰。这里觉得有趣的，第一个可以学习一下这个库，第二个我发现作者自己写了一个应用[Song search in Rust using OpenAI](https://gigapotential.dev/blog/song-search-in-rust-using-openai/)。
 和RAG知识库原理基本一样，把歌词和作者信息等通过embedding模型转换成vector信息，将歌词信息和vector信息存储到向量数据库中，然后通过距离算法，这里使用了余弦距离，计算相似度。然后搜索出排名靠前的音乐。
-## async-openai 用法
+### async-openai 用法
 
 ```rust
 use std::error::Error;
