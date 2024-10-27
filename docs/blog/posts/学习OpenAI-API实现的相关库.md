@@ -7,7 +7,7 @@ categories:
 labels: []
 ---
 
-今天看了一下OpenAI的api文档，python api当然是最常用的。看了一些推荐的其它语言的API。比如:
+在平时工作中或者平时折腾中，你如果部署或者调用过大模型，包括语言大模型LLM、视觉大模型LVM等。那么，你肯定对OpenAI api特别熟悉了。今天一起再看一下OpenAI的api文档，python api当然是最常用的。看了一些推荐的其它语言的API。比如:
 
 + cpp实现：[D7EAD/liboai](https://github.com/D7EAD/liboai)
 
@@ -242,4 +242,4 @@ Ok(sqlx::query(
 })
 .collect())
 ```
-bye！！！
+bye！！！有兴趣的小伙伴可以跟着我的链接，详细看一看源码。
