@@ -20,9 +20,32 @@ labels: []
 这同样也决定了proxychains不能代理静态编译的工具，只能代理加载动态库的工具，因为只有动态库，才可以LD_PRELOAD加载到我们自定义的实现。
 
 !!! Tip: 动态库和静态库的区别？以及go语言的实现区别
-    插一段，加载动态库的优点大家可能都知道，比如可以使得工具更小，也容易升级。静态库更容易分发，比如我编译了一个exe可执行文件，拷贝到另一个机器。如果动态库可能会报错缺失so，那么静态库直接编译到exe中，就更容易分发了。
+    加载动态库的优点大家可能都知道，比如可以使得工具更小，可以替换so升级。静态库更容易分发，比如我编译了一个exe可执行文件，拷贝到另一个机器。如果动态库可能会报错缺失so，那么静态库直接编译到exe中，就更容易分发到其它机器执行了。
     其它语言rust、go都可以编译成静态或者动态。go语言如果是采用GC(Go Compiler)编译器LD_PRELOAD会失效。因为它底层调用的自己的实现,直接调用 syscall 进行了系统调用，而不是libc库的connect实现。因此go写的程序如果要proxychains代理，需要采用GCCGO编译器编译。go的实现区别可以参考[Golang编写程序是无法使用proxychains代理](https://void-shana.moe/posts/proxychains-ng)。
 
+proxychains中如何使用LD_PRELOAD呢？
+
+首先proxychains会编译成一个so动态链接库，自定义了connect函数，去和代理服务器建立连接ns，返回ns描述符。以后的send请求都会通过ns描述符，即经过代理服务器。
+在启动应用程序时，只需要将libproxychains.so设置到LD_PRELOAD环境变量中。如下：
+```bash
+LD_PRELOAD=/usr/lib/libproxychains.so wget www.google.com
+```
+我们使用apt安装的proxychains工具有两个可执行文件，其中一个是shell写的，里面就设置了LD_PRELOAD环境变量为libproxychains.so，然后再执行程序。另一个是编译成的exec可执行文件，再main函数中设置LD_PRELOAD，然后调用execv执行程序。实现的原理都是一样的。
+```c
+https://github1s.com/haad/proxychains/blob/master/src/main.c#L136-L144
+int main(){
+    #ifndef IS_MAC
+	snprintf(buf, sizeof(buf), "%s/%s", prefix, dll_name);
+	setenv("LD_PRELOAD", buf, 1);
+#else
+	snprintf(buf, sizeof(buf), "%s/%s", prefix, dll_name);
+	setenv("DYLD_INSERT_LIBRARIES", buf, 1);
+	setenv("DYLD_FORCE_FLAT_NAMESPACE", "1", 1);
+#endif
+	execvp(argv[start_argv], &argv[start_argv]);
+    ......
+}
+```
 
 ### （二）dlsym RTLD_NEXT
 
@@ -107,5 +130,37 @@ client -> proxy1 -> proxy2 -> proxy3 -> proxy4 -> destination.
 关于如何形成链条的过程，下面这篇文章讲解很清晰[proxy-chaining-how-does-it-exactly-work](https://superuser.com/questions/1213774/proxy-chaining-how-does-it-exactly-work)
 
 > A subtlety though: After proxy1 agrees to act as a CONNECT proxy for you, it takes whatever payload you send and sends to proxy2 as if proxy1 was the author. The next request you send reaches proxy2. In the example scenario this is also a CONNECT request. proxy2 gets it from proxy1 and may even not know you exist. From its point of view proxy1 asks it to CONNECT to proxy3. At the same time proxy1 is unaware it asks anything (unless it peeks into what you send). So neither proxy "consciously" negotiates with the next. You negotiate on behalf of each one in chain. 
+
+实现逻辑：HTTP PROXY建立过程就是发送CONNECT请求，接受Response，成功以后用户的请求就由代理服务器转发处理了。是不是很简单！
+```c
+case HTTP_TYPE:{
+        snprintf((char *) buff, sizeof(buff), "CONNECT %s:%d HTTP/1.0\r\n", dns_name,
+                ntohs(port));
+        strcat((char *) buff, "\r\n");
+        len = strlen((char *) buff);
+        if(len != (size_t) send(sock, buff, len, 0))
+            goto err;
+
+        len = 0;
+        // read header byte by byte.
+        while(len < BUFF_SIZE) {
+            if(1 == read_n_bytes(sock, (char *) (buff + len), 1))
+                len++;
+            else
+                goto err;
+            if(len > 4 &&
+                buff[len - 1] == '\n' &&
+                buff[len - 2] == '\r' && buff[len - 3] == '\n' && buff[len - 4] == '\r')
+                break;
+        }
+
+        // if not ok (200) or response greather than BUFF_SIZE return BLOCKED;
+        if(len == BUFF_SIZE || !(buff[9] == '2' && buff[10] == '0' && buff[11] == '0'))
+            return BLOCKED;
+
+        return SUCCESS;
+    }
+    break;
+```
 
 感谢您的阅读，关于proxychains的几种代理模式、以及关于connect函数递归调用的问题、学习源码，动手实现一个proxychains工具等内容将在下一篇文章介绍。bye！

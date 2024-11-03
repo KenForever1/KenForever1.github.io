@@ -8,7 +8,9 @@ categories:
 labels: []
 ---
 
-## proxychains的几种代理模式你清楚吗？
+## proxychains代理的建立过程
+
+### proxychains的几种代理模式你清楚吗？
 
 `   proxychains` 通过代理服务器链路来转发网络连接的工具。它支持多种代理链模式，。包括 `DYNAMIC_TYPE`、`STRICT_TYPE` 和 `RANDOM_TYPE` 每种模式在代理选择和使用策略上有所不同。
 
@@ -33,6 +35,7 @@ labels: []
 
 [!HTTP代理链过程]()
 
+### Dynamic模式的源码分析
 一切仿佛都没有源码更加清晰了, 看一些Dynamic模式的源码：
 ```c
 case DYNAMIC_TYPE:
@@ -80,7 +83,7 @@ static int start_chain(int *fd, proxy_data * pd, char *begin_mark) {
     ......
 }
 ```
-chain_step函数的实现，
+chain_step函数的实现，调用了tunnel_to函数，实际就是根据类型去建立代理链。
 ```c
 static int chain_step(int ns, proxy_data * pfrom, proxy_data * pto) {
     ......
@@ -103,6 +106,37 @@ static int tunnel_to(int sock, ip_type ip, unsigned short port, proxy_type pt, c
     }
     ......
 }
+```
+其中HTTP PROXY建立过程就是发送CONNECT请求，接受Response，成功以后用户的请求就由代理服务器转发处理了。是不是很简单！
+```c
+case HTTP_TYPE:{
+        snprintf((char *) buff, sizeof(buff), "CONNECT %s:%d HTTP/1.0\r\n", dns_name,
+                ntohs(port));
+        strcat((char *) buff, "\r\n");
+        len = strlen((char *) buff);
+        if(len != (size_t) send(sock, buff, len, 0))
+            goto err;
+
+        len = 0;
+        // read header byte by byte.
+        while(len < BUFF_SIZE) {
+            if(1 == read_n_bytes(sock, (char *) (buff + len), 1))
+                len++;
+            else
+                goto err;
+            if(len > 4 &&
+                buff[len - 1] == '\n' &&
+                buff[len - 2] == '\r' && buff[len - 3] == '\n' && buff[len - 4] == '\r')
+                break;
+        }
+
+        // if not ok (200) or response greather than BUFF_SIZE return BLOCKED;
+        if(len == BUFF_SIZE || !(buff[9] == '2' && buff[10] == '0' && buff[11] == '0'))
+            return BLOCKED;
+
+        return SUCCESS;
+    }
+    break;
 ```
 
 ## 关于connect函数递归调用的问题？
