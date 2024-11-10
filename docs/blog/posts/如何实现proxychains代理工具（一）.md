@@ -1,5 +1,5 @@
 ---
-title: 如何实现proxychains代理工具（一）
+title: 自己动手写一个proxychains代理工具（一）
 date: 2024-11-03
 authors: [KenForever1]
 categories: 
@@ -7,6 +7,8 @@ categories:
   - 源码实现
 labels: []
 ---
+
+想要自己动手写一个proxychains代理工具，首先要明白它的原理和如何实现的，一起来看一下。
 
 ## proxychains工具实现原理
 
@@ -46,6 +48,8 @@ int main(){
     ......
 }
 ```
+
+你是否也会突然想到，这个技术同样可以用于测试和debug调试中，这个后面可以分享一下。
 
 ### （二）dlsym RTLD_NEXT
 

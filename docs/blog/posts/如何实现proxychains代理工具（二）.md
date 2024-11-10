@@ -1,5 +1,5 @@
 ---
-title: 如何实现proxychains代理工具（二）
+title: 自己动手写一个proxychains代理工具（二）
 date: 2024-11-03
 authors: [KenForever1]
 categories: 
@@ -8,11 +8,13 @@ categories:
 labels: []
 ---
 
+上一篇学习了proxychains工具实现原理，包括HTTP代理链是如何建立的呢，接下来我们继续聊聊。
+
 ## proxychains代理的建立过程
 
 ### proxychains的几种代理模式你清楚吗？
 
-`   proxychains` 通过代理服务器链路来转发网络连接的工具。它支持多种代理链模式，。包括 `DYNAMIC_TYPE`、`STRICT_TYPE` 和 `RANDOM_TYPE` 每种模式在代理选择和使用策略上有所不同。
+`proxychains` 通过代理服务器链路来转发网络连接的工具。它支持多种代理链模式，。包括 `DYNAMIC_TYPE`、`STRICT_TYPE` 和 `RANDOM_TYPE` 每种模式在代理选择和使用策略上有所不同。
 
 <!-- more -->
 1. **DYNAMIC_TYPE**:
