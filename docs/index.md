@@ -45,5 +45,9 @@ Github：[KenForever's github](https://github.com/KenForever1)
 
 !!! Tip: Remember to follow me for more exciting content.
 
+## 友链
+
+前进路上遇到的一些优秀blog和资源链接，[友链](./flinks/index.md).
+
 ## Thanks
 this blog theme is inspired by [Knowledge-Garden](https://gh-pages.weiyan.cc/)。
