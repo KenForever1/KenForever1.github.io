@@ -7,12 +7,13 @@ categories:
 labels: []
 ---
 
-
 今天要介绍的主题是TGI（text-generation-inference）， 是huggingface开源可用于生产环境的LLM大模型的推理部署服务。
 
 由Router和InferServer构成。Router由Rust实现，InferServer由python端实现。Router相当于一个代理，面向业务会启动一个WebServer，包括对业务请求采用合适的策略进行动态Batch调整，实现大的吞吐和低的延迟。
 InferServer对各种LLM大语言模型进行支持，启动模型推理服务。
 Router和InferServer之间通过Protobuf定义消息和格式，通过GRPC方式就可以对推理服务进行访问。
+
+<!-- more -->
 
 介绍可以参考文档[text-generation-inference-doc](https://huggingface.co/docs/text-generation-inference/en/index)。
 
