@@ -11,6 +11,8 @@ labels: []
 
 之前在文章[unicode编码和utf-8转换不同语言实现的差别？以及locale杂谈](./unicode编码和utf-8转换不同语言实现的差别？以及locale杂谈.md)中讲到过由于系统的locale设置不正确，遇到unzip解压出来的中文文件名称都变成了unicde的16进制字符表示。当然也介绍了如何使用python、c++以及rust实现转换。在这里我们将实现移植到了neovim插件中，打开文件一键转换。
 
+<!-- more -->
+
 实现的效果是这样：
 
 ![](https://raw.githubusercontent.com/KenForever1/CDN/main/unicode_converter.gif)
