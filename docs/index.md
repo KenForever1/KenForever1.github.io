@@ -58,4 +58,4 @@ Github：[KenForever's github](https://github.com/KenForever1)
 ## Thanks
 this blog theme is inspired by [Knowledge-Garden](https://gh-pages.weiyan.cc/)。
 
-![](https://raw.githubusercontent.com/KenForever1/CDN/main/wechat-log.png)
+![](https://raw.githubusercontent.com/KenForever1/CDN/main/wechat-logo-2.png)
