@@ -15,6 +15,8 @@ comments: true
 !!! abstract "Good Luck!"
     It's what you do right now that makes a difference！
 
+![](https://raw.githubusercontent.com/KenForever1/CDN/main/compress-logo-back-light.jpg)
+
 ## 关于我
 
 我是KenForever1，热爱阅读、喜欢探究源码和新的编程技术。看到有趣的东西会记录下来，分享的好处多多益善；编程除了创造力，也需要趁手高效的工具。因此也会尝试一些高效的工具，打造自己的工作流。
