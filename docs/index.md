@@ -35,6 +35,8 @@ comments: true
 
 Github：[KenForever's github](https://github.com/KenForever1)
 
+LLM Cool Docs: [LLM大模型推理](https://kenforever1.github.io/llm_cool_docs/docs/intro)
+
 <!-- - [KenForever's CSDN](https://blog.csdn.net/DmrForever) -->
 
 !!! Tip: Remember to follow me for more exciting content.
