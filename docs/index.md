@@ -55,6 +55,8 @@ Github：[KenForever's github](https://github.com/KenForever1)
 
 前进路上遇到的一些优秀blog和资源链接，[友链](./flinks/index.md).
 
+一些受益、[有用的资源链接](./flinks/some_useful_links.md)。
+
 ## Thanks
 this blog theme is inspired by [Knowledge-Garden](https://gh-pages.weiyan.cc/)。
 
