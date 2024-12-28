@@ -5,3 +5,5 @@ order_by: title
 nav:
     - mlir学习之旅: mlir
     - llama多少也得会点: llama
+    - lmdepoly如何实现的？: lmdeploy
+    - triton_server是个啥？: triton_server
