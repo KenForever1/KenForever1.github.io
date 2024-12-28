@@ -38,7 +38,7 @@ theme:
     - navigation.footer
   palette:
     - scheme: default
-      primary: grey
+      primary: green
       accent: indigo
       toggle:
         icon: material/theme-light-dark
