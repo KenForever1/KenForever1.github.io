@@ -86,6 +86,78 @@ $ USE_SSH=true yarn deploy
 
 我部署好了以后的网站，[kenforever1.github.io/llm_cool_docs](https://kenforever1.github.io/llm_cool_docs/docs/intro)。
 
+## 改为github workflow自动部署
+
+上面的手动部署方式，是没有把markdown文件提交到git上的。我们希望把markdown内容提交到主分支，然后自动触发workflow部署编译好的html到gh-pages分支。
+
+分为如下步骤：
++ 进入github setting，创建Developer Setting->Personal access token -> Fine grained tokens -> Generate new token。并且勾选相关的权限。
++ 将KenForever1/llm_cool_docs项目的Setting中，Pages->Build and deployment,改为Github Actions。
++ 本地创建main分支，创建.github/workflows/deploy.yml文件
+
+```
+git checkout -b main
+```
+
+deploy.yml文件内容：
+```yaml
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+    # Review gh actions docs if you want to further define triggers, paths, etc
+    # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#on
+
+jobs:
+  build:
+    name: Build Docusaurus
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      - name: Build website
+        run: yarn build
+
+      - name: Upload Build Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+
+    # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
+    permissions:
+      pages: write # to deploy to Pages
+      id-token: write # to verify the deployment originates from an appropriate source
+
+    # Deploy to the github-pages environment
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+```
+
+保存提交github，就可以触发workflow了。
+
+配置文件可以在[triggering-deployment-with-github-actions](https://docusaurus.io/docs/deployment#triggering-deployment-with-github-actions)这里找到。
+
 参考：
 + [基于 Docusaurus 搭建自建博客](https://magicpenta.github.io/blog/2022/02/15/docusaurus/#35-%E8%AF%AD%E6%B3%95%E9%AB%98%E4%BA%AE)
 
