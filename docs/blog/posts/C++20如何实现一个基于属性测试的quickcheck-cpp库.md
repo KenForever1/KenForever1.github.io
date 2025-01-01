@@ -1,11 +1,10 @@
 ---
-title: bvar如何实现高性能多线程统计计数器
-date: 2024-11-23
+title: C++20如何实现一个基于属性测试的quickcheck-cpp库
+date: 2025-01-01
 authors: [KenForever1]
 categories: 
   - cpp
-  - 高性能多线程
-labels: [bvar]
+labels: [quickcheck]
 ---
 
 [TOC]
