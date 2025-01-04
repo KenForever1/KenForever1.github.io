@@ -67,6 +67,8 @@ for(auto item:arr)
 apt install gcc clang
 ```
 
+当然还可以安装一个vmware等虚拟机，再装上一个linux系统用于开发。这也是我以前用过的方式，相比WSL2安装会麻烦一些，使用笔记本上的显卡也会麻烦一些。
+
 ![](https://raw.githubusercontent.com/KenForever1/CDN/main/wsl2.png)
 
 ### Linux
@@ -82,16 +84,20 @@ apt install gcc clang
 ## 编译器与工具链：现代与高效的结合
 
 ### Linux
-- **默认编译器**：Linux 默认使用 **GCC** 和 **Clang**，它们支持最新的 C++ 标准（如 C++17/20），编译速度快，生成的代码性能高。
+- **默认编译器**：Linux 默认使用 **GCC** 和 **Clang**，它们支持最新的 C++ 标准（如 C++17/20以及23、26等），编译速度快，生成的代码性能高。
   - **GCC**：GNU 编译器集合，支持多种编程语言，是 Linux 系统的默认编译器。
   - **Clang**：基于 LLVM 的编译器，以模块化设计和友好的错误提示著称。
 - **调试工具**：GDB 和 LLDB 是强大的调试工具，适合复杂项目的调试。
 - **构建工具**：支持 CMake、Makefile 等现代构建工具，方便管理大型项目。
 
 ### Windows
-- **默认编译器**：Windows 上通常使用 **MSVC**（Microsoft Visual C++），它对 Windows API 支持较好，但编译速度较慢，对 C++ 标准的支持可能滞后。
+- **默认编译器**：Windows 上通常使用 **MSVC**（Microsoft Visual C++），它对 Windows API 支持较好，但对 C++ 标准的支持可能滞后。
 - **其他编译器**：可以通过 MinGW 或 Cygwin 使用 GCC，但配置较复杂。
-- **调试工具**：Visual Studio 的调试器非常强大，但对非 Windows 平台支持有限。
+- **调试工具**：Visual Studio 的调试器非常强大。
+
+对c++标准支持滞后可以从cppreference的看出：
+
+![](https://raw.githubusercontent.com/KenForever1/CDN/main/cpp_compare.png)
 
 ---
 
@@ -166,7 +172,7 @@ apt install gcc clang
 
 ---
 
-## 总结：Linux 是 C++ 开发的理想选择
+## Linux 是 C++ 开发的理想选择
 
 - **Linux 的优势**：
   - 开发环境一致性高，工具链完善，开源生态系统强大，性能优越，适合跨平台开发，学习价值高，成本低。
@@ -184,14 +190,10 @@ apt install gcc clang
 | **开发环境一致性**  | 开发与生产环境一致                 | 开发环境与生产环境不一致           |
 | **编译器**          | GCC、Clang（支持最新 C++ 标准）    | MSVC（Windows 专用）、MinGW        |
 | **调试工具**        | GDB、LLDB（功能强大）              | Visual Studio 调试器（Windows 专用）|
-| **构建工具**        | CMake、Makefile（现代构建工具）    | 依赖手动配置或第三方工具           |
-| **开源生态系统**    | 丰富的开源库和社区支持             | 商业软件为主，开源工具较少         |
-| **性能**            | 编译速度快，系统资源占用低         | 编译速度较慢，资源占用高           |
-| **跨平台开发**      | 强，适合跨平台开发                 | 较弱，依赖 Windows API             |
+| **构建工具**        | CMake、Makefile（现代构建工具）    | 配置过程更加繁琐一些           |
 | **学习价值**        | 深入理解系统，掌握命令行技能       | 图形化界面易上手，但限制底层理解   |
-| **成本**            | 免费开源                           | 需要购买授权                       |
 
 ---
 
-通过以上分析和表格总结，希望你能更好地理解为什么 Linux 是学习和开发 C++ 的优选平台。无论你是初学者还是资深开发者，选择 Linux 都能为你提供更高效、更灵活的开发体验。
+当然，如果你本身就是windows应用开发者，或者你已经熟悉了windows上进行开发那么windows会更加适合你。如果你是新手，希望更快投入语言学习本身，避免和环境作斗争，可以试试linux。
 感谢您的阅读！！！

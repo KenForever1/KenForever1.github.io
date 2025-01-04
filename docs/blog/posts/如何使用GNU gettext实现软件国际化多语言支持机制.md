@@ -1,5 +1,5 @@
 ---
-title: 如何使用 GNU gettext 实现多语言支持机制
+title: 如何使用GNU gettext实现软件国际化多语言支持机制
 date: 2025-01-04
 authors: [KenForever1]
 categories: 
