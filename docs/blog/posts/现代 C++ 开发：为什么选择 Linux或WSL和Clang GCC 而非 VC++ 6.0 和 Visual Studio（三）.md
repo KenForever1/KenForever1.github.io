@@ -7,8 +7,6 @@ categories:
 labels: [cpp]
 ---
 
-[TOC]
-
 在 C++ 开发领域，选择合适的开发环境和工具链对学习效率、开发体验和项目质量至关重要。尽管 **Microsoft Visual C++ 6.0**（VC++ 6.0）和 **Visual Studio** 曾经是 Windows 平台上流行的开发工具，但随着技术的发展，它们的局限性逐渐显现。相比之下，**Linux/WSL** 上的 **Clang/GCC** 以及现代工具如 **CLion** 提供了更先进、更高效的开发体验。本文将详细分析为什么现代 C++ 开发更推荐使用 Linux/WSL 上的 Clang/GCC 或 CLion 等工具，而非 VC++ 6.0 和 Visual Studio，并对相关技术术语进行介绍。
 
 <!-- more -->

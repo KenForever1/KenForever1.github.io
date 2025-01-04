@@ -7,7 +7,6 @@ categories:
 labels: [cpp]
 ---
 
-[TOC]
 
 故事的起因是因为，我在一些群里看到同学们、朋友们，很多都是大学生朋友。问：我的这个c++代码怎么在**Microsoft Visual C++ 6.0**（VC++ 6.0）上跑不起来啊？
 
@@ -25,6 +24,12 @@ int main(){
   }
 }
 ```
+
+```bash
+warning: range-based for loop is a C++11 extension [-Wc++11-extensions]
+for(auto item:arr)
+```
+
 所以，很多问题，可能不是你的程序有问题，但是你却花费了很多时间和心智在和环境做斗争中。
 
 注:devc++目前还有下载官网，vc++6.0我没有看到下载官网。

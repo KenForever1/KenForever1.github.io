@@ -7,8 +7,6 @@ categories:
 labels: [GNU]
 ---
 
-[TOC]
-
 故事的起因是，我看到了一个项目，[kawaii-gcc](https://github.com/Bill-Haku/kawaii-gcc)。
 
 <!-- more -->
@@ -56,8 +54,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: My Project 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-10-01 12:00+0000\n"
-"PO-Revision-Date: 2023-10-02 14:00+0000\n"
+"POT-Creation-Date: 2024-10-01 12:00+0000\n"
+"PO-Revision-Date: 2024-10-02 14:00+0000\n"
 "Last-Translator: John Doe <john@example.com>\n"
 "Language-Team: French <team@example.com>\n"
 "Language: fr\n"
@@ -121,9 +119,191 @@ msgfmt -o fr.mo fr.po
 
 ## 示例：为 Rust 项目添加中文支持
 
-以下是一个 Rust 项目的示例，展示了如何使用 GNU gettext 实现中文支持。
+下面用一个完整的 C++ 示例，展示如何使用 **GNU gettext** 为 Rust 项目添加中文支持。虽然标题提到的是 Rust 项目，但这里我们以 C++ 为例，展示如何通过 `.po` 文件和 `gettext` 实现多语言支持。
 
-### 1. Rust 代码示例
+---
+
+## 1. **C++ 项目代码示例**
+
+假设我们有一个简单的 C++ 程序，使用 `gettext` 实现国际化：
+
+```cpp
+#include <iostream>
+#include <libintl.h> // gettext 库
+#include <locale.h>  // setlocale 函数
+
+#define _(string) gettext(string) // 定义翻译宏
+
+int main() {
+    // 设置语言环境
+    setlocale(LC_ALL, "zh_CN.UTF-8");
+    bindtextdomain("myapp", "./locales"); // 指定翻译文件目录
+    textdomain("myapp"); // 设置文本域
+
+    // 翻译文本
+    std::cout << _("Hello, world!") << std::endl;
+    std::cout << _("Welcome to my C++ project.") << std::endl;
+
+    return 0;
+}
+```
+
+---
+
+## 2. **提取翻译字符串**
+
+使用 `xgettext` 工具从 C++ 代码中提取需要翻译的字符串，生成 `.pot` 文件：
+
+```
+sudo apt install gettext libgettextpo-dev
+```
+
+
+```bash
+mkdir -p locales
+xgettext -o locales/myapp.pot -k_ main.cpp --from-code=UTF-8
+```
+
+生成的 `myapp.pot` 文件内容如下：
+
+```pot
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-01-04 17:06+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: main.cpp:14
+msgid "Hello, world!"
+msgstr ""
+
+#: main.cpp:15
+msgid "Welcome to my C++ project."
+msgstr ""
+```
+
+---
+
+## 3. **创建中文 `.po` 文件**
+
+使用 `msginit` 从 `.pot` 文件生成中文的 `.po` 文件：
+
+```bash
+mkdir -p locales/zh_CN/LC_MESSAGES
+msginit -i locales/myapp.pot -o locales/zh_CN/LC_MESSAGES/myapp.po -l zh_CN --locale=zh_CN.UTF-8
+```
+
+生成的 `myapp.po` 文件内容如下：
+
+```po
+# Chinese translations for PACKAGE package.
+# Copyright (C) 2025 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+#  <ken@laptop-44oc4fg2.>, 2025.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-01-04 17:06+0800\n"
+"PO-Revision-Date: 2025-01-04 17:07+0800\n"
+"Last-Translator:  <ken@laptop-44oc4fg2.>\n"
+"Language-Team: Chinese (simplified) <i18n-zh@googlegroups.com>\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: main.cpp:14
+msgid "Hello, world!"
+msgstr "你好，世界！"
+
+#: main.cpp:15
+msgid "Welcome to my C++ project."
+msgstr "欢迎来到我的 C++ 项目。"
+```
+
+如果上面生成的charset=UTF-8不是UTF-8可以手动改一下。
+
+---
+
+## 4. **编译 `.po` 文件为 `.mo` 文件**
+
+使用 `msgfmt` 将 `.po` 文件编译为 `.mo` 文件，供程序使用：
+
+```bash
+msgfmt -o locales/zh_CN/LC_MESSAGES/myapp.mo locales/zh_CN/LC_MESSAGES/myapp.po
+```
+
+---
+
+## 5. **项目目录结构**
+
+最终的目录结构如下：
+
+```
+myapp/
+├── src/
+│   └── main.cpp
+├── locales/
+│   ├── myapp.pot
+│   └── zh_CN/
+│       └── LC_MESSAGES/
+│           ├── myapp.po
+│           └── myapp.mo
+└── Makefile
+```
+
+---
+
+## 6. **编译和运行程序**
+
+### 编译 C++ 程序
+确保安装了 `gettext` 库，并使用以下命令编译程序：
+
+```bash
+g++ -o myapp main.cpp -lintl
+```
+
+### 运行程序
+设置语言环境为中文并运行程序：
+
+```bash
+export LANG=zh_CN.UTF-8
+./myapp
+```
+
+输出结果为：
+
+```
+你好，世界！
+欢迎来到我的 C++ 项目。
+```
+
+---
+
+## 示例：为 Rust 项目添加中文支持
+
+当然可以！以下是一个为 Rust 项目编写的 `.po` 文件示例。假设我们有一个简单的 Rust 项目，需要支持英语（默认）和法语（`fr`）两种语言。
+
+---
+
+### **Rust 项目代码示例**
+假设我们有以下 Rust 代码，使用了 `gettext` 库来实现国际化：
+
 ```rust
 use gettextrs::{gettext, LocaleCategory};
 
@@ -139,41 +319,53 @@ fn main() {
 }
 ```
 
-### 2. 提取翻译字符串
+---
+
+### **提取翻译字符串**
+使用 `xgettext` 工具从 Rust 代码中提取需要翻译的字符串，生成 `.pot` 文件：
+
 ```bash
 xgettext -o locales/myapp.pot -kgettext -kngettext:1,2 src/main.rs
 ```
 
-### 3. 创建中文 `.po` 文件
-```bash
-msginit -i locales/myapp.pot -o locales/zh_CN/LC_MESSAGES/myapp.po -l zh_CN
-```
+生成的 `myapp.pot` 文件内容如下：
 
-### 4. 编辑 `.po` 文件
-```po
+```pot
+#: src/main.rs:9
 msgid "Hello, world!"
-msgstr "你好，世界！"
+msgstr ""
 
+#: src/main.rs:10
 msgid "Welcome to my Rust project."
-msgstr "欢迎来到我的 Rust 项目。"
+msgstr ""
 ```
 
-### 5. 编译 `.po` 文件
-```bash
-msgfmt -o locales/zh_CN/LC_MESSAGES/myapp.mo locales/zh_CN/LC_MESSAGES/myapp.po
-```
+---
 
-### 6. 运行程序
+### **运行程序**
+设置语言环境为法语并运行程序：
+
 ```bash
 export LANG=zh_CN.UTF-8
 cargo run
 ```
 
-输出结果为：
+.mo文件中，是通过msgid去匹配可执行程序中的字符串的。所以如果rust和c++中的字符是一样的。那么是可以共用.mo文件来翻译的。同理，其它语言也是。
+
+如果你的c++和rust，运行没有翻译效果，可以尝试下面的方法解决：
 ```
-你好，世界！
-欢迎来到我的 Rust 项目。
+# 通过命令查看系统存在的locale
+locale -a
+
+# 如果发现没有zh_CN.utf8
+locale-gen zh_CN.UTF-8
 ```
+
+然后再运行就可以了。
+
+---
+
+为 Rust 项目创建了一个 `.po` 文件，并实现了多语言支持。`.po` 文件是国际化的核心，结合 `gettext` 工具链，可以轻松管理多语言翻译。
 
 ---
 

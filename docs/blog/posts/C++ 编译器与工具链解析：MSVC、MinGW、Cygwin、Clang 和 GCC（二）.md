@@ -7,7 +7,6 @@ categories:
 labels: [cpp]
 ---
 
-[TOC]
 
 C++ 编译器与工具链解析：MSVC、MinGW、Cygwin、Clang 和 GCC
 
