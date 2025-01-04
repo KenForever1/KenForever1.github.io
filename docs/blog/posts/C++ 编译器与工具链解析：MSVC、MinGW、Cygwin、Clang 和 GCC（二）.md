@@ -20,10 +20,8 @@ C++ 编译器与工具链解析：MSVC、MinGW、Cygwin、Clang 和 GCC
 
 ![](https://raw.githubusercontent.com/KenForever1/CDN/main/msvc.png)
 
-### 1.1 概述
 **MSVC** 是微软为 Windows 平台量身打造的 C++ 编译器，集成在 **Visual Studio** 中。作为 Windows 开发的主流工具，MSVC 在 Windows 应用程序开发中占据重要地位。
 
-### 1.2 核心特点
 - **Windows 深度集成**：
   - 对 Windows API 和 Visual Studio 的无缝支持，使其成为 Windows 平台开发的首选。
 - **C++ 标准支持**：
@@ -33,7 +31,7 @@ C++ 编译器与工具链解析：MSVC、MinGW、Cygwin、Clang 和 GCC
 - **性能表现**：
   - 编译速度较慢，尤其是在大型项目中，但其生成的代码在 Windows 平台上运行效率较高。
 
-### 1.3 适用场景
+适用场景包括：
 - Windows 桌面应用程序开发。
 - 使用 Visual Studio 进行 Windows 平台开发。
 
@@ -43,10 +41,8 @@ C++ 编译器与工具链解析：MSVC、MinGW、Cygwin、Clang 和 GCC
 
 ![](https://raw.githubusercontent.com/KenForever1/CDN/main/mingw.png)
 
-### 2.1 概述
 **MinGW** 是 GCC 的 Windows 移植版本，旨在为 Windows 开发者提供 GCC 的强大功能。它不依赖额外的运行时库，生成的程序可以直接在 Windows 上运行。
 
-### 2.2 核心特点
 - **跨平台支持**：
   - 支持在 Windows 上开发跨平台应用，生成的程序无需额外依赖。
 - **C++ 标准支持**：
@@ -56,7 +52,7 @@ C++ 编译器与工具链解析：MSVC、MinGW、Cygwin、Clang 和 GCC
 - **性能表现**：
   - 编译速度较快，生成的代码性能较高，接近原生 GCC。
 
-### 2.3 适用场景
+适用于：
 - 在 Windows 上进行跨平台开发。
 - 使用 GCC 工具链开发 Windows 应用程序。
 
@@ -66,10 +62,8 @@ C++ 编译器与工具链解析：MSVC、MinGW、Cygwin、Clang 和 GCC
 
 ![](https://raw.githubusercontent.com/KenForever1/CDN/main/cygwin.png)
 
-### 3.1 概述
 **Cygwin** 是一个在 Windows 上提供类 Linux 环境的工具集，包括 GCC 编译器。它通过一个兼容层在 Windows 上运行 Linux 工具和应用程序。
 
-### 3.2 核心特点
 - **类 Linux 环境**：
   - 提供完整的 Linux 工具链和命令行工具，适合熟悉 Linux 的开发者。
 - **C++ 标准支持**：
@@ -79,7 +73,7 @@ C++ 编译器与工具链解析：MSVC、MinGW、Cygwin、Clang 和 GCC
 - **依赖运行时库**：
   - 生成的程序依赖 Cygwin 的运行时库，可能影响性能。
 
-### 3.3 适用场景
+适用于：
 - 在 Windows 上运行 Linux 工具和应用程序。
 - 需要类 Linux 环境的开发。
 
@@ -89,10 +83,8 @@ C++ 编译器与工具链解析：MSVC、MinGW、Cygwin、Clang 和 GCC
 
 ![](https://raw.githubusercontent.com/KenForever1/CDN/main/clang.png)
 
-### 4.1 概述
 **Clang** 是基于 LLVM 的 C++ 编译器，以其模块化设计和友好的错误提示著称。作为 GCC 的替代品，Clang 在跨平台开发和现代 C++ 支持方面表现出色。
 
-### 4.2 核心特点
 - **错误提示友好**：
   - 提供清晰、详细的错误提示，极大提升了开发者的调试效率。
 - **C++ 标准支持**：
@@ -102,7 +94,7 @@ C++ 编译器与工具链解析：MSVC、MinGW、Cygwin、Clang 和 GCC
 - **工具链完善**：
   - 与 LLVM 工具链（如 LLDB 调试器）深度集成，提供强大的开发支持。
 
-### 4.3 适用场景
+适用场景：
 - 需要高质量错误提示和静态分析的开发。
 - 跨平台开发，尤其是 macOS 和 Linux 平台。
 
@@ -112,10 +104,8 @@ C++ 编译器与工具链解析：MSVC、MinGW、Cygwin、Clang 和 GCC
 
 ![](https://raw.githubusercontent.com/KenForever1/CDN/main/gcc.png)
 
-### 5.1 概述
 **GCC** 是 GNU 开发的编译器集合，支持多种编程语言（如 C、C++、Fortran）。作为 Linux 系统的默认编译器，GCC 在开源项目和跨平台开发中占据重要地位。
 
-### 5.2 核心特点
 - **跨平台支持**：
   - 支持多种平台（如 Linux、Windows、macOS），是跨平台开发的首选工具。
 - **C++ 标准支持**：
@@ -124,8 +114,7 @@ C++ 编译器与工具链解析：MSVC、MinGW、Cygwin、Clang 和 GCC
   - 编译速度快，生成的代码性能高，适合高性能计算和资源密集型任务。
 - **开源生态系统**：
   - 与 Linux 开源生态系统无缝集成，支持大量开源库和工具。
-
-### 5.3 适用场景
+使用场景：
 - Linux 平台开发。
 - 跨平台开发，尤其是开源项目。
 
