@@ -1,5 +1,5 @@
 ---
-title: c++如何导出一个c API接口sdk
+title: c++如何优雅的导出一个c API接口sdk
 date: 2025-01-04
 authors: [KenForever1]
 categories: 
