@@ -9,3 +9,17 @@
 ### rust llvm and mlir
 + https://github.com/TheDan64/inkwell
 + https://github.com/raviqqe/melior
+
+## 使用mlir的项目
+
+###  OpenAI Triton编译器
+
+相关资料：[OpenAI Triton编译器](https://github.com/AdvancedCompiler/AdvancedCompiler/tree/main?tab=readme-ov-file)
+
+```
+:smile:
+```
+
+:smile:
+:smile:
+:smile:
