@@ -1,9 +1,9 @@
 site_dir: "site"
 site_url: https://github.com/KenForever1
 site_name: KenForever1
-site_description: '热爱编程和阅读，学无止境'
+site_description: "热爱编程和阅读，学无止境"
 
-# Docs 
+# Docs
 docs_dir: "docs"
 
 # Repository
@@ -31,7 +31,7 @@ theme:
     - navigation.indexes
     - navigation.top
     - navigation.sections
-    - navigation.path         
+    - navigation.path
     - content.action.edit
     - content.action.view
     - content.code.copy
@@ -49,28 +49,28 @@ theme:
       toggle:
         icon: material/theme-light-dark
         name: Switch to light mode
-    
+
 markdown_extensions:
-    - admonition
-    - pymdownx.details
-    - md_in_html
-    - pymdownx.superfences
-    - pymdownx.tabbed:
-        alternate_style: true
-    - smarty
-    - toc:
-        permalink: True
-        separator: "-"
-        toc_depth: 5
-        slugify: !!python/object/apply:pymdownx.slugs.slugify
-            kwds:
-                case: lower
-    - pymdownx.highlight
-    - pymdownx.arithmatex:
-        generic: true
-    - attr_list
-    - md_in_html
-    - pymdownx.emoji:
+  - admonition
+  - pymdownx.details
+  - md_in_html
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - smarty
+  - toc:
+      permalink: True
+      separator: "-"
+      toc_depth: 5
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.highlight
+  - pymdownx.arithmatex:
+      generic: true
+  - attr_list
+  - md_in_html
+  - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
@@ -81,24 +81,24 @@ plugins:
       pretty_print: True
       length: 1000
       date_from_meta:
-          as_creation: "date"
-          as_update: "date"
+        as_creation: "date"
+        as_update: "date"
       abstract_chars_count: -1
       match_path: "(blog/posts|flinks|galaxy|message|note|readme|tech|yuque)/.*"
   - glightbox:
-      auto_caption: false    
+      auto_caption: false
       caption_position: bottom
   - search:
       lang:
-          - en
-          - zh
+        - en
+        - zh
   - git-revision-date-localized:
       type: iso_date
       timezone: Asia/Shanghai
       fallback_to_build_date: true
       exclude:
-          - blog/archive/*
-          - blog/category/*
+        - blog/archive/*
+        - blog/category/*
   - awesome-pages:
       order: desc
       sort_type: natural
@@ -115,7 +115,7 @@ plugins:
 
 hooks:
   - hooks.py
-      
+
 extra:
   social:
     - type: "github"
@@ -134,6 +134,6 @@ extra_css:
   - css/extra.css
 
 extra_javascript:
-    - js/mathjax.js
-    - https://polyfill.io/v3/polyfill.min.js?features=es6
-    - https://cdn.bootcss.com/mathjax/3.0.5/es5/tex-mml-chtml.js      
+  - js/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.bootcss.com/mathjax/3.0.5/es5/tex-mml-chtml.js
