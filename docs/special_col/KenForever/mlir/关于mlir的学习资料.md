@@ -14,12 +14,6 @@
 
 ###  OpenAI Triton编译器
 
-相关资料：[OpenAI Triton编译器](https://github.com/AdvancedCompiler/AdvancedCompiler/tree/main?tab=readme-ov-file)
+[OpenAI Triton编译器](https://github.com/AdvancedCompiler/AdvancedCompiler/tree/main?tab=readme-ov-file)
 
-```
-:smile:
-```
-
-:smile:
-:smile:
-:smile:
+:smile: :smile: :smile:
