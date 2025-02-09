@@ -1,6 +1,20 @@
+---
+title: fish如何增加和删除环境变量PATH？为什么没有fish_remove_path方法删除环境变量
 
+date: 2025-2-9
+authors: [KenForever1]
+categories: 
+  - linux
+labels: []
+---
 
-## fish_add_path命令
+fish如何增加和删除环境变量PATH？fish为什么没有fish_remove_path方法删除环境变量。
+
+<!-- more -->
+
+## fish如何设置环境变量PATH
+
+答案是：**fish_add_path命令**。
 
 默认是universal variable。将变量增加到通用变量fish_user_paths中。除非指定-P或者--path采用修改$PATH环境变量。
 
@@ -84,10 +98,6 @@ end
 唯一真正的解决方案是一开始就不要添加这个路径。
 > We could do a fish_remove_path that would remove your path from $fish_user_paths, but that would be confusing if that's not where the path is added, because it would appear to do nothing.Or we could add one that removes it from $PATH, but that would be confusing if it was added again later.
 
-我认为这里的困惑是，你删除的时候，你并不确定是Universal还是global变量，还是说它来自于$PATH, 因此你不好明确定义怎么删除。
-
-作为用户本身，我们也可能不知道应该删哪一个。而且又可能你设置了一个Universal的变量，别的程序设置了$PATH等等。
-
 参考:[fish_remove_path or equivalent, or documentation update](https://github.com/fish-shell/fish-shell/issues/8604).
 
 有个commit提交给，fish_add_path增加了一个-r/--remove选项，指定删除path。
@@ -99,3 +109,4 @@ end
 参考：[Add --remove to fish_add_path](https://github.com/fish-shell/fish-shell/pull/9744)
 
 通过，本文我们学会了fish如何设置环境变量$PATH, 以及变量的作用范围。为什么没有fish_remove_path命令，作者的考虑是什么。
+
