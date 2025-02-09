@@ -1,6 +1,6 @@
 ---
 title: c++静态库和动态库全局变量初始化有何不同？
-date: 2025-01-05
+date: 2024-10-26
 authors: [KenForever1]
 categories: 
   - C++
