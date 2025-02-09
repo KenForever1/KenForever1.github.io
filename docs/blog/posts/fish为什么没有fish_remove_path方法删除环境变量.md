@@ -1,7 +1,6 @@
 ---
 title: fish如何增加和删除环境变量PATH？为什么没有fish_remove_path方法删除环境变量
-
-date: 2025-2-9
+date: 2025-02-09
 authors: [KenForever1]
 categories: 
   - linux
