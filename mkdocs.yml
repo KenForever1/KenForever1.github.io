@@ -21,9 +21,12 @@ theme:
   custom_dir: overrides
   favicon: assets/logo.ico
   logo: assets/octocat.png
+  # font:
+  #   text: "Microsoft Yahei"
+  #   code: "Consolas,Courier,courier new,stkaiti,kaiti,simkai,monospace"
   font:
-    text: "Microsoft Yahei"
-    code: "Consolas,Courier,courier new,stkaiti,kaiti,simkai,monospace"
+    text: Roboto
+    code: Roboto Mono
   features:
     - navigation.instant
     - navigation.tracking
