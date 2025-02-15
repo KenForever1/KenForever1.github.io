@@ -18,8 +18,11 @@ ZIP 文件由多个头部组成，包括本地文件头、中央目录文件头�
 ![walk-back](https://cdn.fasterthanli.me/content/articles/the-case-for-sans-io/walk-back~b53287db339e1008.svg)
 
 标头包括：
+
 + 本地文件头（Local file header）：包含单个文件的元数据并后跟文件数据，可独立压缩和加密。
+
 + 中央目录文件头（Central directory file header）：包含单个文件的元数据和指向本地文件头的偏移量，多个中央目录文件头形成中央目录，可快速枚举存档中的所有文件。
+
 + 中央目录结束记录（End of central directory record）：包含找到第一个中央目录文件头的信息，是 ZIP 文件的入口点。
 
 ZIP 文件的解析的入口点是中央目录结束记录（End of central directory record），始终位于文件的末尾。
@@ -41,7 +44,9 @@ ZIP 文件的解析的入口点是中央目录结束记录（End of central dire
 
 ## 中央目录的位置及作用
 中央目录在文件底部，这样可以通过追加新的中央目录来添加文件，而无需重写整个文件。在使用软盘存储时这一特性尤为重要。还可以通过仅追加数据来修改和删除文件，旧版本文件仍在磁盘上但合规的 ZIP 阅读器不会读取。
+
 ## ZIP 文件的有趣特性
+
 + ZIP 文件可以在开头添加任意内容使其既是有效 PNG 又是有效 ZIP（多语言文件）以隐藏 ZIP；由于 ZIP 文件是从末尾读取的，因此可以将任何内容放在 ZIP 文件的开头。例如，您可以制作一个既是有效 PNG 又是有效 ZIP（多语言文件）的文件，以隐藏外观和工作方式类似于图像的 ZIP 文件。
 
 + 可以将 ZIP 文件附加到 ZIP 提取器二进制文件中使其自解压形成自解压存档文件；该技术[Self-extracting_archive](https://en.wikipedia.org/wiki/Self-extracting_archive)实现双击文件时自动解压缩的常用技术。

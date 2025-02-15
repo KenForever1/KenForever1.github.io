@@ -1,0 +1,33 @@
+@import url('https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700|Roboto+Mono&display=fallback');
+
+@font-face {
+  font-family: 'custom Roboto';
+  src: local('楷体');
+  unicode-range: U+4E00-9FFF;
+}
+
+@font-face {
+  font-family: 'custom Roboto';
+  src: local('Roboto');
+  unicode-range: U+00-024F;
+}
+
+@font-face {
+  font-family: 'custom Roboto Mono';
+  src: local('楷体');
+  unicode-range: U+4E00-9FFF;
+}
+
+@font-face {
+  font-family: 'custom Roboto Mono';
+  src: local('Roboto Mono');
+  unicode-range: U+00-024F;
+}
+
+body,input{
+  font-family: "custom Roboto", "Roboto", "Helvetica Neue",Helvetica,Arial,sans-serif;
+}
+
+code,kbd,pre{
+  font-family: "custom Roboto Mono", "Roboto Mono","Courier New",Courier,monospace;
+}

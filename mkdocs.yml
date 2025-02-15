@@ -134,6 +134,7 @@ extra:
     property: foobar
 
 extra_css:
+  - stylesheets/extra.css
   - css/extra.css
 
 extra_javascript:
