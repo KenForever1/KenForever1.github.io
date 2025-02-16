@@ -1,3 +1,6 @@
+---
+comments: true
+---
 ## llama中的GGUF格式如何加载模型文件？
 gguf是gg大佬发明的保存llm模型的格式。
 保存了header、k-v、tensor，支持多种模型，保存GPT、Phi3、transformer等等，支持扩展。

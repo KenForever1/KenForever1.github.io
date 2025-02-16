@@ -6,6 +6,7 @@ categories:
   - LLM推理
 labels: [LLM推理]
 pin: true
+comments: true
 ---
 
 [TOC]

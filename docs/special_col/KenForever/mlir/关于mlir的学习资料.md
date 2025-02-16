@@ -1,3 +1,6 @@
+---
+comments: true
+---
 ## 关于mlir的一些学习资料和blog
 
 ### blog

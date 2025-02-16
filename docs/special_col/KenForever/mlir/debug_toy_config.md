@@ -1,3 +1,6 @@
+---
+comments: true
+---
 ## 调试mlir的vscode环境配置
 除了前文中在运行时指定调试打印参数，更加友好的方式可能就是gdb调试了。本节讲解一下vscode调试环境配置。
 首先vscode打开llvm_project项目，采用debug模式编译项目:

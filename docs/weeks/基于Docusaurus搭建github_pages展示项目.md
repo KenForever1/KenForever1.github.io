@@ -1,4 +1,6 @@
-
+---
+comments: true
+---
 基于Docusaurus搭建github_pages效果如图所示：
 
 ![](https://raw.githubusercontent.com/KenForever1/CDN/main/llm_cool_docs.png)

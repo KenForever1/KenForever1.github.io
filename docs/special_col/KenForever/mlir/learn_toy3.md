@@ -1,3 +1,6 @@
+---
+comments: true
+---
 # MLIR 系列--Toy3 Rewrite Pass
 [TOC]
 

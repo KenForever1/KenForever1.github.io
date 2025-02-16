@@ -1,4 +1,6 @@
-
+---
+comments: true
+---
 std::vector<byte_t> f_data;
 
 如果我们在使用json库序列化float数组时，要注意转换成string后，默认精度只有小数点后6位。如果要网络传输，可以使用base64编码，然后收到后再解码，这样就不会因为转换std::string导致精度损失。

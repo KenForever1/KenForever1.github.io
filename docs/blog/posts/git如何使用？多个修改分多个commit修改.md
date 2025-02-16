@@ -7,6 +7,7 @@ categories:
   - 开发工具
   - 开发技能
 labels: []
+comments: true
 ---
 ## 一个文件多处修改分多个commit提交
 

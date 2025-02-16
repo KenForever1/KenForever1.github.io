@@ -5,6 +5,7 @@ authors: [KenForever1]
 categories: 
   - Python
 labels: []
+comments: true
 ---
 
 在平时的开发工作中，如果你要把python环境打包给对方，你会怎么做呢？

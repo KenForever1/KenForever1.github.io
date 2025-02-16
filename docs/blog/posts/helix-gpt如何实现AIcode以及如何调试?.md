@@ -6,6 +6,7 @@ categories:
   - vim
   - ai
 labels: []
+comments: true
 ---
 
 ## helix-gpt如何实现ai编码功能的？

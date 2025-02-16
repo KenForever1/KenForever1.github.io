@@ -5,6 +5,7 @@ authors: [KenForever1]
 categories: 
   - C++
 labels: []
+comments: true
 ---
 
 通过对ZIP 文件格式的学习，就有了足够的信息能够逐字节手动读取和写入 ZIP 文件，知道为什么zip压缩格式为什么是从后往前开始解析的。

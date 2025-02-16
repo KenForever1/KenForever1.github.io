@@ -1,3 +1,6 @@
+---
+comments: true
+---
 在使用gcov + lcov测试分支覆盖率时，发现声明一个对象，以及调用vector push_back函数，都会出现50%的分支覆盖率，比如：
 
 ```cpp

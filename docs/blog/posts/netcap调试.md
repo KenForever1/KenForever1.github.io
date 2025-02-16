@@ -6,6 +6,7 @@ categories:
   - ebpf
   - netcap
 labels: []
+comments: true
 ---
 
 ## rust实践

@@ -6,6 +6,7 @@ categories:
   - rust
   - ebpf
 labels: []
+comments: true
 ---
 使用aya支持CO-RE（编译一次，在不同版本的内核上运行程序）。aya 库（用户空间侧）可以用来加载有 relocations 的 BPF 程序，但用 Rust 语言编写 BPF 程序的 aya-ebpf 库（内核侧）。所以如果无法避免 relocations 等问题时，就需要结合c写内核，rust写用户空间加载。(比如：还不支持 relocations 相关的 bpf_core_read 或编译器的 __builtin_preserve_access_index 函数）。[参考](https://github.com/lx200916/kill_probe_eBPF/issues/1)
 <!-- more -->

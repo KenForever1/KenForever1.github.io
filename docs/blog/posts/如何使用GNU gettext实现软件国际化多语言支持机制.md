@@ -5,6 +5,7 @@ authors: [KenForever1]
 categories: 
   - GNU
 labels: [GNU]
+comments: true
 ---
 
 故事的起因是，我看到了一个项目，[kawaii-gcc](https://github.com/Bill-Haku/kawaii-gcc)。

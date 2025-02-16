@@ -5,6 +5,7 @@ authors: [KenForever1]
 categories: 
   - rust
 labels: []
+comments: true
 ---
 ## rust如何优雅的写错误处理
 <!-- more -->

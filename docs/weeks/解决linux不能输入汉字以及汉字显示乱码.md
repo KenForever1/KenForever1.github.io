@@ -1,3 +1,6 @@
+---
+comments: true
+---
 # 解决linux不能输入汉字以及汉字显示乱码
 
 ```bash

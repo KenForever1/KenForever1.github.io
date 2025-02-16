@@ -6,6 +6,7 @@ categories:
   - proxychains
   - 源码实现
 labels: []
+comments: true
 ---
 
 想要自己动手写一个proxychains代理工具，首先要明白它的原理和如何实现的，一起来看一下。

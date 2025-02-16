@@ -5,6 +5,7 @@ authors: [KenForever1]
 categories: 
   - LLM推理
 labels: []
+comments: true
 ---
 
 今天要介绍的主题是TGI（text-generation-inference）， 是huggingface开源可用于生产环境的LLM大模型的推理部署服务。

@@ -6,6 +6,7 @@ categories:
   - cpp
 labels: [quickcheck]
 pin: true
+comments: true
 ---
 
 [TOC]

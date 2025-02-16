@@ -7,6 +7,7 @@ categories:
   - 队列
 labels: []
 pin: true
+comments: true
 ---
 我每天早上都会打开Github的Trendings板块，了解最新的动态，我相信这是个还不错的习惯。遇到感兴趣的项目我会打开看看源码，学习一下大佬们的写法和实现。
 

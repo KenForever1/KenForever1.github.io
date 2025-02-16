@@ -1,4 +1,6 @@
-
+---
+comments: true
+---
 # docker镜像加速方法
 
 在使用docker时，找到的有效加速方法：

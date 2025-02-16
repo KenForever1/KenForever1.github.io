@@ -1,4 +1,6 @@
-
+---
+comments: true
+---
 在lmdeploy中支持了很多模型的推理，这些模型是如何注册给lmdeploy框架的呢？
 lmdeploy框架又是如何调用到正确的模型推理的呢?
 

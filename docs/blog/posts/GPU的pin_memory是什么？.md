@@ -5,6 +5,7 @@ authors: [KenForever1]
 categories: 
   - LLM推理
 labels: []
+comments: true
 ---
 
 ## gpu的pin_memory

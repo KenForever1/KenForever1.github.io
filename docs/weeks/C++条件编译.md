@@ -1,3 +1,6 @@
+---
+comments: true
+---
 C++ 条件编译
 
 1. 首先，在CMakeLists.txt中添加以下代码，以定义新的CFLAG：

@@ -5,6 +5,7 @@ authors: [KenForever1]
 categories: 
   - vim
 labels: []
+comments: true
 ---
 
 文章介绍了如果实现一个轮转代码的neovim插件，简单的策略就是a->b, b->c, ..., z->a。

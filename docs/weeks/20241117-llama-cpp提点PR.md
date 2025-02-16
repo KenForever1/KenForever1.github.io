@@ -5,6 +5,7 @@ authors: [KenForever1]
 categories: 
   - 每周杂谈
 labels: []
+comments: true
 ---
 
 ## llama-cpp中计算用于线性代数计算的线程数

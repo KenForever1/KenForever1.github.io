@@ -1,3 +1,6 @@
+---
+comments: true
+---
 ## 1 安装ffmpeg
 
 ### 1.1 下载ffmpeg

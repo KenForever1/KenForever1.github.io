@@ -5,6 +5,7 @@ authors: [KenForever1]
 categories: 
   - 每周杂谈
 labels: []
+comments: true
 ---
 
 ## c++开源库和文章分享

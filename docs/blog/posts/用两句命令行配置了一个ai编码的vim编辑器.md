@@ -6,6 +6,7 @@ categories:
   - vim
   - ai
 labels: []
+comments: true
 ---
 
 ## 用两句命令行配置了一个ai编码的vim编辑器

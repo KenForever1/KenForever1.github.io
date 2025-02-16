@@ -5,6 +5,7 @@ authors: [KenForever1]
 categories: 
   - vim
 labels: []
+comments: true
 ---
 
 上一篇讲了如何通过nvim-oxi实现一个neovim插件nvim_rotate_chars来轮转字符，这一篇通过采用相关技术实现了一个unicode字符表示转换成汉字显示。这些工具在日常开发和工作中都可以用到，自己实现一个也可以学到新东西练练代码手感。

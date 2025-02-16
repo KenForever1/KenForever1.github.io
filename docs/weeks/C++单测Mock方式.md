@@ -1,3 +1,6 @@
+---
+comments: true
+---
 ## 1 GTest GMock
 
 GMock可以满足如下测试需求：

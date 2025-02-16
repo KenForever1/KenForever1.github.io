@@ -1,4 +1,6 @@
-
+---
+comments: true
+---
 Intervl2-8B模型的预处理preprocess有何不同?
 
 Intervl2-8B模型会对图片进行切图，切成448x448的子图送入模型。和QwenVL不一样，QwenVL可以输入任意大小图片。

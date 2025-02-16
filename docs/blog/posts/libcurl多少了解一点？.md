@@ -5,6 +5,7 @@ authors: [KenForever1]
 categories: 
   - libcurl
 labels: []
+comments: true
 ---
 
 ## libcurl多少了解一点？

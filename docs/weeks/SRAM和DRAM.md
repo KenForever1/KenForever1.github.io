@@ -1,3 +1,6 @@
+---
+comments: true
+---
 合理运用 L2 缓存能够提速运算。A100 的 L2 缓存能够设置至多 40MB 的持续化数据 (persistent data)，能够拉升算子 kernel 的带宽和性能。Flash attention 的思路就是尽可能地利用 L2 缓存，减少 HBM 的数据读写时间。
 
 在图形处理器（GPU）中，内存技术扮演着至关重要的角色，不同类型的内存（DRAM、HBM、SRAM）各有其特定的用途和优势。以下是对这些内存在GPU中的介绍：
