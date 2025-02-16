@@ -5,6 +5,7 @@ authors: [KenForever1]
 categories: 
   - cpp
 labels: [quickcheck]
+pin: true
 ---
 
 [TOC]

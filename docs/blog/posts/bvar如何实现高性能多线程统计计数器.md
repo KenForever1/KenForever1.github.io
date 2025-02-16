@@ -6,6 +6,7 @@ categories:
   - cpp
   - 高性能多线程
 labels: [bvar]
+pin: true
 ---
 
 [TOC]
