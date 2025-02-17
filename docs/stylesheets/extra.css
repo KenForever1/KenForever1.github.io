@@ -2,7 +2,7 @@
 
 @font-face {
   font-family: 'custom Roboto';
-  src: local('楷体');
+  src: url('../assets/fonts/simkai.ttf') format('truetype');
   unicode-range: U+4E00-9FFF;
 }
 
@@ -14,7 +14,7 @@
 
 @font-face {
   font-family: 'custom Roboto Mono';
-  src: local('楷体');
+  src: url('../assets/fonts/simkai.ttf') format('truetype');
   unicode-range: U+4E00-9FFF;
 }
 
