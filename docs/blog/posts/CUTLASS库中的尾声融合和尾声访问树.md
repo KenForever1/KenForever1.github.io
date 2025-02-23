@@ -15,9 +15,10 @@ CUTLASS库中的尾声融合(Epilogue Fusion)和尾声访问树(Epilogue Visitor
 
 GEMM 在 NVIDIA GPU 上的高性能实现分为两个阶段：mainloop和epilogue。
 
-+ mainloop负责实际 GEMM 计算的部分
+- mainloop：负责实际 GEMM 计算的部分
 
-+ 其中进行了后处理（例如，元素激活、缩放）和数据存储
+- epilogue：其中进行了后处理（例如，元素激活、缩放）和数据存储
+
 
 这篇文章中，我们将研究 CUTLASS 的尾声融合(epilogue fusion)方案。EVT在论文[Epilogue Visitor Tree (EVT)](https://dl.acm.org/doi/pdf/10.1145/3620666.3651369)中。
 
@@ -25,6 +26,15 @@ GEMM 在 NVIDIA GPU 上的高性能实现分为两个阶段：mainloop和epilogu
 
 首先，概述了尾声阶段和 EVT。然后将展示如何使用 CUTLASS 定义的 EVT 和手动构建的 EVT 将简单的 EVT 添加到 CUTLASS GEMM 内核中。然后，给出了一个为新颖用例开发 EVT 的扩展示例，该示例介绍了一些更高级的工具：归约操作和拓扑访问者。[代码示例](https://github.com/ColfaxResearch/cfx-article-src/blob/master/evt/README.md)
 
+## CUTLASS 是什么？
+
+参考[CUTLASS 3.8.0](https://github.com/NVIDIA/cutlass)。
+
+CUTLASS 是一个 CUDA C++模板抽象集合，用于在 CUDA 中实现高性能矩阵乘法（GEMM）及相关计算，涵盖所有级别和规模。它采用了类似于用于实现 cuBLAS 和 cuDNN 的分层分解和数据移动策略。CUTLASS 将这些“可移动部分”分解为可重用的模块化软件组件，由 C++模板类抽象出来。概念并行层次结构不同级别的原语可以通过自定义分块大小、数据类型和其他算法策略进行专门化和调整。由此产生的灵活性简化了它们在自定义内核和应用程序中作为构建块的使用。
+
+为了支持各种应用，CUTLASS 为混合精度计算提供了广泛支持，为 FP64、FP32、TF32、FP16、BF16、通过张量核心指令模拟 FP32、8 位浮点类型（e5m2 和 e4m3）、块缩放数据类型（NVIDIA NVFP4 和 OCP 标准 MXFP4、MXFP6、MXFP8）、窄整数类型（4 位和 8 位有符号和无符号整数）以及二进制 1 位数据类型（在架构允许对这些数据类型进行原生支持的情况下）提供专门的数据移动和乘积累加抽象。CUTLASS 针对 NVIDIA 的 Volta、Turing、Ampere、Ada、Hopper 和 Blackwell 架构实现的可编程高吞吐量张量核心展示了最佳矩阵乘法操作。
+
+除了通用矩阵乘法（General Matrix Multiplication，GEMM）之外，CUTLASS 还通过隐式 GEMM 算法实现高性能卷积。隐式 GEMM 是将卷积运算表述为 GEMM，从而利用 CUTLASS 的模块化 GEMM 流水线。这使得 CUTLASS 能够通过重用高度优化的 GEMM 组件来构建卷积。
 
 ## 尾声阶段和 EVT
 
@@ -46,7 +56,7 @@ GEMM 在 NVIDIA GPU 上的高性能实现分为两个阶段：mainloop和epilogu
 由于尾声可能涉及复杂的操作序列，因此尾声访问者必须是可组合的。尾声访问者树（EVT）是组织成树状结构的访问者集合，它们共同作为一个单独的访问者进行操作。树中的每个叶节点代表一个基本操作，例如加法、乘法、加载或存储。非叶节点通常是树访问者（稍后我们将讨论一个例外情况）。当树访问者访问数据时，它递归地将任务委托给其子节点，并将子节点的输出作为其自身操作的输入。树的根节点的输出最终存储到 GMEM。计算的一个基本示例如图 1所示。
 
 $$
-\mathrm{ReLU}(\alpha+\mathbf{AB}+++\beta+\mathbf{C})
+\mathrm{ReLU}(\alpha\mathbf{AB}+\beta\mathbf{C})
 $$
 
 ![图 1.尾声访客树的一个简单示例。每个树访问者都由一个操作（红色）和一组子节点组成，这些子节点本身可能是树访问者，也可能获取矩阵图块（绿色）或标量（蓝色）。树的输出是其根节点的输出。](https://i0.wp.com/research.colfax-intl.com/wp-content/uploads/2024/10/image-9.png?resize=1536%2C1377&ssl=1)
