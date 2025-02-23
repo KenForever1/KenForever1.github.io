@@ -255,10 +255,16 @@ EVTs 是用树表示的计算图。在访问过程中，树被递归地遍历；
 $$
 \mathrm{Loss}=-\frac{1}{n}\sum_{i=1}^n\sum_{j=1}^L\left[C_{ij}\log\sigma(f_{ij})+(1-C_{ij})\log(1-\sigma(f_{ij}))\right],
 $$
+
+
 $$
 \log(1-\sigma(x))=\log\left(1-\frac{1}{1+e^{-x}}\right)=\log\left(\frac{e^{-x}}{1+e^{-x}}\right)=-x+\log\sigma(x)
 $$
+
+
 因此，该公式简化为
+
+
 $$
 \sum_{i=1}^n\sum_{j=1}^L\left[(1-C_{ij})(-f_{ij})+\log\sigma(f_{ij})\right]
 $$
