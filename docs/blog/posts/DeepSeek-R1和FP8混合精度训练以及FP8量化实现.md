@@ -17,6 +17,8 @@ comments: true
 
 [深度探索（DeepSeek）](https://www.deepseek.com/)发布了其推理模型[深度探索-R1（DeepSeek-R1）](https://arxiv.org/abs/2501.12948)，震惊了世界。与 OpenAI 的 o1 和Google Gemini的Flash Thinking类似，R1 模型旨在通过在响应提示之前生成一条“[思维链](https://arxiv.org/abs/2201.11903)”来提高回复质量。R1 引起的兴奋源于它在包括数学、编码以及英语和中文语言理解等几个行业标准基准测试中与 o1 达到同等水平，同时它也是开源的，并且可以通过深度探索 API 以[极低的成本](https://api-docs.deepseek.com/quick_start/pricing)获得。
 
+<!-- more -->
+
 DeepSeek 的技术报告涵盖了广泛的性能优化技术，这些技术使其在高效的大型语言模型训练和推理方面取得了突破性成果。其中许多技术已被用于训练 DeepSeek-V3，这是一个与 Anthropic 的 Claude Sonnet 和 OpenAI 的 GPT-4o 相当的模型，R1 模型是通过微调（fine-tuning）和强化学习从 DeepSeek-V3 中获得的。在这篇文章中，我们将特别关注 DeepSeek 的基础 DeepSeek-V3 模型的 FP8 混合精度训练策略（在 DeepSeek-V3 论文的 3.3 节和下图（该论文的图 6）中进行了描述）。
 
 和往常一样，一个核心瓶颈是矩阵乘法（也称为“matmul”或“GEMM”），如图表中的黄色方框所示。如图所示，模型权重存储在 FP8 中，所有矩阵乘法都在 FP8 中进行，并带有 FP32 累加。激活值和梯度存储在 BF16 中，FP32 也用于一些内部计算。
