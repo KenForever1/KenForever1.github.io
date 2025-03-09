@@ -23,7 +23,9 @@ comments: true
 
 ## 架构
 
-![架构图](https://github.com/odygrd/quill/blob/master/docs%2Fdesign.jpg)
+<!-- ![](https://github.com/odygrd/quill/blob/master/docs%2Fdesign.jpg) -->
+
+![架构图](https://raw.githubusercontent.com/KenForever1/CDN/main/quil.png)
 
 ## BoundedSPSC队列实现
 
