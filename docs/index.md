@@ -31,7 +31,7 @@ comments: true
 
 知乎：[SteveForver](https://www.zhihu.com/people/steveforever/columns),互联网大厂程序员，热爱编程和阅读，学无止境
 
-公众号：[陆吾穷奇篇](https://mp.weixin.qq.com/s/SWspdJGOkcsky3ifs79-mA?token=406256589&lang=zh_CN), 能同途偶遇在这星球上，探索、记录、享受...
+公众号：[陆吾穷奇篇](https://mp.weixin.qq.com/s/EUUGXJIRzGvR0S_1_Wsxpg), 能同途偶遇在这星球上，探索、记录、享受...
 
 Github：[KenForever's github](https://github.com/KenForever1)
 
