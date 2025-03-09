@@ -1,31 +1,34 @@
 @import url('https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700|Roboto+Mono&display=fallback');
+/* @import url('https://cdn.jsdelivr.net/npm/cn-fontsource-fz-kai-z-03-regular/font.css'); */
 
 @font-face {
   font-family: 'custom Roboto';
-  src: url('../assets/fonts/simkai.ttf') format('truetype');
+  /* src: local('Roboto'); */
+  src: url('../assets/fonts/kaiti_regular.woff2') format('truetype');
   unicode-range: U+4E00-9FFF;
 }
 
 @font-face {
   font-family: 'custom Roboto';
-  src: local('Roboto');
+  src: url('../assets/fonts/cambria.woff') format('truetype');
   unicode-range: U+00-024F;
 }
 
 @font-face {
   font-family: 'custom Roboto Mono';
-  src: url('../assets/fonts/simkai.ttf') format('truetype');
+  src: url('../assets/fonts/kaiti_regular.woff2') format('truetype');
   unicode-range: U+4E00-9FFF;
 }
 
 @font-face {
   font-family: 'custom Roboto Mono';
-  src: local('Roboto Mono');
+  /* src: local('Roboto Mono'); */
+  src: url('../assets/fonts/JetBrainsMono-Regular.woff2') format('truetype');
   unicode-range: U+00-024F;
 }
 
 body,input{
-  font-family: "custom Roboto", "Roboto", "Helvetica Neue",Helvetica,Arial,sans-serif;
+  font-family: "custom Roboto", "Cambria", "Roboto", "Helvetica Neue",Helvetica,Arial,sans-serif;
 }
 
 code,kbd,pre{

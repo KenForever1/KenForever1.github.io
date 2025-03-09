@@ -146,13 +146,13 @@ main
 
 ### 参考
 
-https://llvm.org/docs/WritingAnLLVMNewPMPass.html
++ https://llvm.org/docs/WritingAnLLVMNewPMPass.html
 
-https://blog.llvm.org/posts/2021-03-26-the-new-pass-manager/
++ https://blog.llvm.org/posts/2021-03-26-the-new-pass-manager/
 
-https://stackoverflow.com/questions/54447985/how-to-automatically-register-and-load-modern-pass-in-clang
++ https://stackoverflow.com/questions/54447985/how-to-automatically-register-and-load-modern-pass-in-clang
 
-https://sh4dy.com/2024/06/29/learning_llvm_01/
++ https://sh4dy.com/2024/06/29/learning_llvm_01/
 
 ## LLVM开发中的一些概念
 
@@ -236,10 +236,12 @@ struct SomePass: public PassInfoMixin<SomePass>{
   }
 }
 
+```
+
 完整可编译代码访问[KenForever1/llvm_snippet](https://github.com/KenForever1/llvm_snippet)
 
-```
 ### Pass example1: 打印全局变量及其类型
+
 这是一个简单的 LLVM 传递，它会打印出程序中的所有全局变量及其类型。代码遍历所有全局变量，获取它们的名称和类型，并将其打印出来。
 ```c++
 PreservedAnalyses run(Module &M, ModuleAnalysisManager &MPM)
