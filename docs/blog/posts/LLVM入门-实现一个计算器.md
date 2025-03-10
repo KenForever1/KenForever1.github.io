@@ -190,7 +190,7 @@ CFG是编译器进行程序分析和优化的重要工具。通过分析CFG，�
 
 ![](https://eli.thegreenplace.net/images/2013/09/diamond-cfg.png)
 
-## 编写Pass
+## 通过例子学习如何编写Pass
 
 前面的Pass注册使用了registerPipelineStartEPCallback，这个小节的例子换成registerPipelineParsingCallback。
 
@@ -669,9 +669,26 @@ dot -Tpng -o img.png .main.dot
 
 ```
 
+[main函数的CFG图](https://sh4dy.com/2024/07/06/learning_llvm_02/)如图所示：
+
 ![](https://sh4dy.com/images/llvm_learning/llvm_learning_03.png)
 
-## 实现一个计算器
+---
+
+这节我们要完成一个什么事情呢？
+
+读取一个 code.txt 文件，分析每一行指令，比如add。每种指令都有生成对应的LLVM IR，通过LLVM JIT编译注册进Module的IR，可以通过指令名称查找到已编译的函数的入口点，调用执行：
+
+```c++
+add 1,2
+sub 10,5
+mul 10,20
+xor 5,5
+add 5,10
+xor 10,5
+```
+
+## LLVM JIT介绍
 
 ### 什么是JIT？
 JIT（即时编译器）是一种在程序开始执行后才动态生成机器代码的编译器。与之相对的是AOT（预先编译器），它在程序执行之前将源代码翻译成可执行代码，这些可执行代码存储在编译后的二进制文件中。
@@ -688,7 +705,7 @@ ORC（On-Request Compilation，按需编译）是LLVM JIT API的第三代实现�
 
 在使用ORC JIT API时，开发者可以动态地生成机器代码，这对于需要高性能和灵活性的应用来说非常有用。比如在一个小型计算器项目中，ORC可以用来在运行时即时编译和执行用户输入的计算表达式。通过ORC API，开发者可以编写程序，在需要时动态生成和执行高效的机器代码。
 
-## LLVM中的JIT
+### LLVM中的JIT
 
 LLVM的JIT（即时编译）功能是一种强大的机制，可以在程序运行时动态生成和优化机器代码。这对于需要高性能和灵活性的应用程序非常有用，比如解释器、动态语言运行时或特定场景的优化代码。以下是LLVM JIT的一些关键点和如何使用它的基本步骤：
 
@@ -709,6 +726,8 @@ LLVM的JIT（即时编译）功能是一种强大的机制，可以在程序运�
 3. **添加模块到引擎**：将LLVM模块添加到JIT引擎中。引擎会负责将模块中的IR转换为机器代码。
 
 4. **查找和执行函数**：通过引擎查找已编译的函数的入口点，然后通过函数指针调用它们。
+
+## 实现一个计算器
 
 ### 代码实现
 
