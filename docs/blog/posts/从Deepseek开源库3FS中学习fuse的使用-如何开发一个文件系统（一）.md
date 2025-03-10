@@ -353,7 +353,7 @@ struct fuse_lowlevel_ops {
 };
 ```
 
-### fuse_session_loop
+#### fuse_session_loop
 
 进入单线程、阻塞式事件循环。如果预先注册了信号处理程序，则可以通过信号终止该循环。
 
