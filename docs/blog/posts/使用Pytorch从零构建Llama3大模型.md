@@ -1,6 +1,6 @@
 ---
 title: 使用Pytorch从零构建Llama3大模型--深入了解LLaMa3模型的每个组件
-date: 2024-03-24
+date: 2025-03-24
 authors: [KenForever1]
 categories: 
   - llm
