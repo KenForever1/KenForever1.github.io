@@ -15,6 +15,8 @@ comments: true
 
 ![](https://miro.medium.com/v2/resize:fit:1400/format:webp/1*_xNP7aBpcmcMk4tXJ-Z8Mw.png)
 
+<!-- more -->
+
 ## 看了这篇文章的收获？
 
 + 深入了解 LLaMa 3 模型的每个组件如何工作的。
