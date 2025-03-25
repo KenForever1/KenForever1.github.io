@@ -8,6 +8,8 @@ labels: []
 comments: true
 ---
 
+（本文主要内容译自[build-your-own-llama-3-architecture-from-scratch-using-pytorch](https://pub.towardsai.net/build-your-own-llama-3-architecture-from-scratch-using-pytorch-2ce1ecaa901c)）
+
 朋友们，书接上文，上一篇的Llama3还没有分享完，接着分享输出模块（Output Block）和训练、推理。
 
 ## Output Block
