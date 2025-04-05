@@ -42,6 +42,8 @@ impl Gadget {
 
 看一个例子，再注册到一个Vec中保持了Sampler的Weak引用，而这个引用就通过Arc new_cyclic 构建的弱引用指针。
 
+详细使用参考[KenForever1/bvar-rust](https://github.com/KenForever1/bvar-rust/blob/main/examples/create_weak_when_init.rs)项目中用法。
+
 ```rust
 use std::sync::{Arc, Weak, Mutex};
 
