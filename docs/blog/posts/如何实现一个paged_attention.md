@@ -12,7 +12,7 @@ comments: true
 
 <!-- more -->
 
-## paged_attention
+## paged_attention介绍
 
 传统上，请求的键值缓存有以下两点：
 
@@ -23,7 +23,7 @@ comments: true
 
 为了减少内存碎片并提高请求吞吐量（批量大小），分页注意力（PagedAttention）提供了一种非连续的键值缓存内存管理方案，大致遵循操作系统分页。这确保了内存碎片仅在每个请求的最后分配块中发生：在下面的图表中，用红色勾勒出的部分，请求 A 在物理块 3 中有 3 个tokens，请求 B 在物理块 2 中有 2 个tokens。
 
-![](https://github.com/tspeterkim/paged-attention-minimal/blob/main/assets/pagedattention.png)
+![](https://raw.githubusercontent.com/KenForever1/CDN/main/pagedattention.png)
 
 从代码上看attention和paged_attention的区别：
 ```python
@@ -35,9 +35,9 @@ y = paged_attn(k_cache=k_cache_paged, v_cache=v_cache_paged, block_table=block_t
 
 与k_cache不同，k_cache_paged是非连续的，并且由所有请求共享。物理块 0~8 可以分配给任何请求，这就是为什么我们传入block_table，它包含每个请求对逻辑块到物理块的分配。例如，在上面的图表中，block_table看起来像{0: [7,1,3], 1: [5,2]}（0 和 1 分别是请求 A 和 B 的索引）。
 
-## 基于flash-attention的PagedAttention内核实现缓存管理器
+## 基于flash-attention实现缓存管理器
 
-万丈高楼拔地起，我们可以基于现有的基础架构，也可以从零开始搭建。
+万丈高楼拔地起，我们可以基于现有的基础架构，比如基于flash-attention的PagedAttention内核实现缓存管理器，也可以从零开始搭建。
 
 今天介绍的是基于[Dao-AILab/flash-attention](https://github.com/Dao-AILab/flash-attention)，它采用了flash-attention的PagedAttention内核实现。用户只需要实现缓存管理器。它与缓存管理器一起使用（例如在 vLLM 中），该缓存管理器管理何时分配和释放块以及构建块表。缓存管理器的实现取决于你如何构建推理引擎，因此flash-attention没有实现这样的缓存管理器。
 
