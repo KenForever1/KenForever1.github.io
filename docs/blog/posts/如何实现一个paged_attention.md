@@ -183,9 +183,11 @@ class CacheManager:
 # 为每层创建CacheManager
 cms = [CacheManager(tokens) for _ in range(n_layers)]
 ```
+
 如何使用这个缓存管理器来执行paged_attention操作？
 
 在forward函数中，我们需要在每个层上执行paged_attention操作。
+
 ```python
 def forward(tokens, start_pos):
     bsz, T = tokens.shape
