@@ -85,12 +85,12 @@ plugins:
       enabled: True
       image: https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Feed-icon.svg/128px-Feed-icon.svg.png
       pretty_print: True
-      length: 1000
       date_from_meta:
         as_creation: "date"
         as_update: "date"
       abstract_chars_count: -1
-      match_path: "(blog/posts|flinks|galaxy|message|note|readme|tech|yuque)/.*"
+      categories_from_meta: categories
+      match_path: "(blog/posts)/.*"
   - glightbox:
       auto_caption: false
       caption_position: bottom
