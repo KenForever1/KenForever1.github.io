@@ -82,6 +82,7 @@ markdown_extensions:
 
 plugins:
   - rss:
+      # 你可以在 https://yourwebsite.com/blog/feed_rss_created.xml 或 http://yourwebsite.com/rss.xml 存取 RSS Feed！
       enabled: True
       image: https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Feed-icon.svg/128px-Feed-icon.svg.png
       pretty_print: True
