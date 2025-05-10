@@ -1,5 +1,5 @@
 ---
-title: [译]LLM推理：采用投机采样加速推理
+title: LLM推理：采用投机采样加速推理[译]
 date: 2025-05-10
 authors: [KenForever1]
 categories: 
