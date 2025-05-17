@@ -8,7 +8,7 @@ labels: []
 comments: true
 ---
 
-[vllm源码7464a][](https://sourcegraph.com/github.com/vllm-project/vllm@37464a0f745a0204da7443d2a6ef4b8f65e5af12/-/blob/vllm/spec_decode/spec_decode_worker.py)
+[vllm源码7464a](https://sourcegraph.com/github.com/vllm-project/vllm@37464a0f745a0204da7443d2a6ef4b8f65e5af12/-/blob/vllm/spec_decode/spec_decode_worker.py)。
 
 ### 架构
 
@@ -16,6 +16,8 @@ SpecDecodeWorker
 + Proposers (ngram, draft model)
 + Scorer (top-1 scoring)
 + Verifier (rejection sampling)
+
+<!-- more -->
 
 ![](https://raw.githubusercontent.com/KenForever1/CDN/main/spec_arch.png)
 
