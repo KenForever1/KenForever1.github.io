@@ -11,7 +11,7 @@ comments: true
 [torch_memory_saver](https://github.com/fzyzcjy/torch_memory_saver/tree/master
 )是一个开源的高性能CUDA内存管理工具，主要功能是允许暂停和恢复PyTorch张量的CUDA内存占用。保持用户使用的虚拟地址不变，暂停后释放显存，恢复重新分配显存，绑定到虚拟地址上。
 
-本文会介绍核心原理，以及拦截CUDA runtime API的实现。你还可以看到如何实现一个python c++扩展。
+本文会介绍核心原理，以及拦截CUDA runtime API的实现。你还可以看到如何实现一个python c++扩展。在sglang大模型推理库中也有使用到这个torch_memory_saver库。
 
 <!-- more -->
 
