@@ -107,7 +107,7 @@ class DeepseekV2DecoderLayer(nn.Module):
 
 ## speculative
 DeepSeek的推测解码(Speculative Decoding)系统采用模块化设计，主要组件如下：
-``` mermaid
+```mermaid
 graph TD
     A[EagleWorker] --> B[EagleUtils]
     A --> C[BuildEagleTree]
