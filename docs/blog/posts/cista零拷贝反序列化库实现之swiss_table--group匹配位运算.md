@@ -54,6 +54,8 @@ bit_mask match(h2_t const hash) const noexcept {
 
 #### 通过一个例子来理解`match`：
 
+相关例子实现源码[KenForever1/cpp_idioms](https://github.com/KenForever1/cpp_idioms/blob/main/cpp/swiss_table/bit_verify_match.cpp)。
+
 让我们通过一个具体例子来说明match方法的位运算过程。假设：
 
 当前group的8个控制字节为：[0x12, 0x34, 0x56, 0x78, 0x12, 0x9A, EMPTY, DELETED]
