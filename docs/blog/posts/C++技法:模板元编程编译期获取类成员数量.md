@@ -217,3 +217,14 @@ Point p4 = {1, 2, 3}; // error, 超过2个参数
 ```
 
 通过这个例子，我们可以看到，通过递归探测，可以确定任意类型的成员数量。
+
+具体使用：
+
+```c++
+int main(){
+  int nums = cista::arity<Point>();
+  std::cout << nums << std::endl;
+  return 0;
+}
+```
+完整例子可以参考[KenForever1/cpp_idioms](https://github.com/KenForever1/cpp_idioms/blob/main/cpp/template/main.cpp)。
