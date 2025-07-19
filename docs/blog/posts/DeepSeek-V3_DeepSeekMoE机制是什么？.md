@@ -9,7 +9,7 @@ pin: true
 comments: true
 ---
 
-[TOC]
+<!-- [TOC] -->
 
 今天我们一起来阅读一篇文章[deepseek-v3-explained-2-deepseekmoe](https://medium.com/ai-advances/deepseek-v3-explained-2-deepseekmoe-106cffcc56c1)，文章通过巧妙的例子生动讲解了DeepSeekMoE机制的原理。DeepSeekMoE是DeepSeek模型中的另一个关键架构创新。
 

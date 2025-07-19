@@ -9,7 +9,7 @@ pin: true
 comments: true
 ---
 
-[TOC]
+<!-- [TOC] -->
 
 ## DeepSeek-R1 和 FP8 混合精度训练(译)
 

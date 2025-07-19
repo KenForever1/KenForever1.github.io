@@ -9,7 +9,7 @@ pin: true
 comments: true
 ---
 
-[TOC]
+<!-- [TOC] -->
 
 `quickcheck` 是一个非常强大的工具！`quickcheck` 是一个基于属性测试（Property-based Testing）的 Rust 库，灵感来自于 Haskell 的 QuickCheck 库。它的核心思想是通过自动生成大量随机输入来测试代码的属性，而不是手动编写具体的测试用例。
 

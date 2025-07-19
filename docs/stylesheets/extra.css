@@ -4,26 +4,28 @@
 @font-face {
   font-family: 'custom Roboto';
   /* src: local('Roboto'); */
-  src: url('../assets/fonts/kaiti_regular.woff2') format('truetype');
+  /* src: url('../assets/fonts/kaiti_regular.woff2') format('truetype'); */
+  src: url('https://cdn.jsdelivr.net/gh/KenForever1/CDN/kaiti_regular.woff2') format('truetype');
   unicode-range: U+4E00-9FFF;
 }
 
 @font-face {
   font-family: 'custom Roboto';
-  src: url('../assets/fonts/cambria.woff') format('truetype');
+  /* src: url('../assets/fonts/cambria.woff') format('truetype'); */
+  src: url('https://cdn.jsdelivr.net/gh/KenForever1/CDN/cambria.woff') format('truetype');
   unicode-range: U+00-024F;
 }
 
 @font-face {
   font-family: 'custom Roboto Mono';
-  src: url('../assets/fonts/kaiti_regular.woff2') format('truetype');
-  unicode-range: U+4E00-9FFF;
+  src: url('https://cdn.jsdelivr.net/gh/KenForever1/CDN/kaiti_regular.woff2') format('truetype');
 }
 
 @font-face {
   font-family: 'custom Roboto Mono';
   /* src: local('Roboto Mono'); */
-  src: url('../assets/fonts/JetBrainsMono-Regular.woff2') format('truetype');
+  /* src: url('../assets/fonts/JetBrainsMono-Regular.woff2') format('truetype'); */
+  src: url('https://cdn.jsdelivr.net/gh/KenForever1/CDN/JetBrainsMono-Regular.woff2') format('truetype');
   unicode-range: U+00-024F;
 }
 

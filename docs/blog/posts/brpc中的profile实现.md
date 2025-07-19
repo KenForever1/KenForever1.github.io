@@ -9,7 +9,7 @@ pin: true
 comments: true
 ---
 
-[TOC]
+<!-- [TOC] -->
 
 ## brpc的cpu profile
 

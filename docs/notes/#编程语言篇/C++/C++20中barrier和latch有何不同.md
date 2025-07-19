@@ -1,4 +1,4 @@
-[TOC]
+<!-- [TOC] -->
 
 [`std::barrier`](https://en.cppreference.com/w/cpp/thread/barrier "`std::barrier`") 和 [`std::latch`](https://en.cppreference.com/w/cpp/thread/latch "`std::latch`") 是 C++20 引入的同步原语，用于多线程编程中的线程协调。
 

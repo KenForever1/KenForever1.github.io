@@ -3,7 +3,7 @@ comments: true
 ---
 # MLIR初遇--Toy2
 
-[TOC]
+<!-- [TOC] -->
 ## 初遇
 + AI编译器和AI部署框架的区别？
 + MLIR和tvm的区别？

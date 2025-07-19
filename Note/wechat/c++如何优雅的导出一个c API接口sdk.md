@@ -7,7 +7,7 @@ categories:
 labels: [cpp]
 ---
 
-[TOC]
+<!-- [TOC] -->
 
 一些c++开发的代码，比如sdk，往往需要导出c sdk提供给c用户、或者其它跨语言FFI绑定调用（比如python、lua等）。
 

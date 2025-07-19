@@ -14,10 +14,10 @@ a.md-nav__link{display:block; overflow:hidden; text-overflow:ellipsis; white-spa
 .md-typeset{font-size:.75rem;}
 
 /* Grid background */
-.md-main {
+/* .md-main {
   background-image: linear-gradient(rgba(50,0,0,0.05) 1px,transparent 0),linear-gradient(90deg,rgba(50,0,0,0.05) 1px,transparent 0);
   background-size: 15px 15px;
-}
+} */
 
 #rcorners {
   border-radius: 10px;

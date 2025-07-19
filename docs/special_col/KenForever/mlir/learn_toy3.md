@@ -2,7 +2,7 @@
 comments: true
 ---
 # MLIR 系列--Toy3 Rewrite Pass
-[TOC]
+<!-- [TOC] -->
 
 上一篇：[MLIR初遇--Toy2](https://zhuanlan.zhihu.com/p/711422122)
 > https://mlir.llvm.org/docs/Tutorials/Toy/Ch-3/
