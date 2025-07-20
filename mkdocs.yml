@@ -67,7 +67,10 @@ markdown_extensions:
       slugify: !!python/object/apply:pymdownx.slugs.slugify
         kwds:
           case: lower
-  - pymdownx.highlight
+  - pymdownx.highlight:
+      anchor_linenums: true
+      # linenums: true # 显示行号
+      auto_title: true # 显示编程语言名称
   - pymdownx.arithmatex:
       generic: true
   - attr_list

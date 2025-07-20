@@ -36,3 +36,8 @@ body,input{
 code,kbd,pre{
   font-family: "custom Roboto Mono", "Roboto Mono","Courier New",Courier,monospace;
 }
+
+/* 页面宽度配置 */
+.md-grid {
+  max-width: 1440px; 
+}
