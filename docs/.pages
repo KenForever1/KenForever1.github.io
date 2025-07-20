@@ -2,7 +2,6 @@ title: "Hello"
 
 nav:
     - 博客: blog
-    - 每周杂谈: weeks
+    - 杂谈杂记: weeks
     - 技术: notes
-    - 专栏: special_col
     - 关于我: index.md
