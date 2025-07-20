@@ -368,7 +368,7 @@ def on_page_markdown(markdown, **kwargs):
         relative_url = article_info['url']
         # 拼接基本路径和文章相对URL，并确保路径分隔符正确
         full_url = "https://kenforever1.github.io/" + relative_url
-        print("full_url:", full_url)
+        # print("full_url:", full_url)
         recommendation_html += f'<li><a href="{full_url}" target="_blank">{title}</a></li>\n'
 
     recommendation_html += '</ul>\n'

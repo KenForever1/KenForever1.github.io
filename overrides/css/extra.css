@@ -59,3 +59,12 @@ a.md-nav__link{display:block; overflow:hidden; text-overflow:ellipsis; white-spa
   margin-right: 0.5em; /* Add some space between the SVG icon and the text */
 }
 
+/* .md-post__content md-typeset{
+  background: linear-gradient(145deg, rgba(255,255,255,0.8) 0%, rgba(240,240,240,0.6) 100%);
+  border-radius: 16px;
+  padding: 2rem;
+  margin: 2rem 0;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  border: 1px solid rgba(200,200,200,0.2);
+  transition: all 0.3s ease;
+} */
