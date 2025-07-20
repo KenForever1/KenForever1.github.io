@@ -368,8 +368,8 @@ def on_page_markdown(markdown, **kwargs):
         relative_url = article_info['url']
         # 拼接基本路径和文章相对URL，并确保路径分隔符正确
         full_url = relative_url.replace('//', '/')
-        print("full_url:", full_url)
-        recommendation_html += f'<li><a href="{full_url}">{title}</a></li>\n'
+        # print("full_url:", full_url)
+        recommendation_html += f'<li><a href="./{full_url}">{title}</a></li>\n'
 
     recommendation_html += '</ul>\n'
     recommendation_html += '</div>\n'
