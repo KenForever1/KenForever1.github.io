@@ -175,6 +175,27 @@ def calculate_content_hash(content):
     """计算内容哈希，用于检测内容变化"""
     return hashlib.md5(content.encode('utf-8')).hexdigest()
 
+import re
+from urllib.parse import unquote
+def process_string(input_str):
+    """
+    处理字符串：
+    1. 保留中文字符
+    2. 将英文大写字母转为小写
+    3. 移除所有标点符号，保留"-"、"_"
+    4. 将空格替换为连字符
+    """
+    input_str = unquote(input_str)
+    # print(input_str)
+    input_str = input_str.replace(' ', '-')
+    
+    # 保留中文字符和英文字母
+    chn_and_eng = re.sub(r'[^\u4e00-\u9fa5a-zA-Z0-9\-\_]', '', input_str)
+    # 将英文大写转为小写
+    lower_case = chn_and_eng.lower()
+    res = "blog/" + lower_case + "/"
+    return res
+
 def on_files(files, config):
     """预处理所有文章，建立索引"""
     global article_index, category_index, keyword_index
@@ -212,6 +233,8 @@ def on_files(files, config):
                     # 获取分类
                     path_category = get_category_from_path(file.src_path)
 
+                    title = metadata['title']
+                    file_url = process_string(title)
                     # 构建文章信息
                     article_info = {
                         'title': metadata['title'],
@@ -220,7 +243,7 @@ def on_files(files, config):
                         'categories': metadata['categories'],
                         'path_category': path_category,
                         'keywords': keywords,
-                        'url': file.url,
+                        'url': file_url,
                         'path': file.src_path,
                         'content_hash': calculate_content_hash(content),
                         'source_dir': file.src_path.split('/')[0]  # blog 或 develop

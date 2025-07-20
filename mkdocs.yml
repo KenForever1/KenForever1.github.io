@@ -129,6 +129,7 @@ plugins:
 
 hooks:
   - hooks.py
+  - overrides/hooks/related_posts.py
 
 extra:
   social:
