@@ -1,5 +1,5 @@
 ---
-title: C++零拷贝反序列化cista
+title: C++零拷贝反序列化库cista
 date: 2025-06-28
 authors: [KenForever1]
 categories: 
@@ -49,19 +49,64 @@ namespace data = cista::offset;
 在data命名空间下，实现了hashmap、hashset、string、vector等数据结构，支持判断相等、hash等。
 
 + 为什么offset方式相比raw方式速度更快？
+
 + hashmap如何实现的？
 
 ## offset和raw方式
 
 Offset Based Data Structures
-+ can be read without any deserialization step (i.e. reinterpret_cast<T> is sufficient).
-+ suitable for shared memory applications
-- slower at runtime (pointers need to be resolved using one more add)
+
+* \+ can be read without any deserialization step (i.e. reinterpret_cast<T> is sufficient).
+
+* \+ suitable for shared memory applications
+
+* \- slower at runtime (pointers need to be resolved using one more add)
 
 Raw Data Structures
-- deserialize step takes time (but still very fast also for GBs of data)
-- the buffer containing the serialized data needs to be modified
-+ fast runtime access (raw access)
+
+* \- deserialize step takes time (but still very fast also for GBs of data)
+
+* \- the buffer containing the serialized data needs to be modified
+
+* \+ fast runtime access (raw access)
+
+我们简单过一下代码实现，有兴趣的朋友可以阅读源码，代码很清晰。
+
+## 零拷贝反序列化
+
+零拷贝主要使用了mmap方式，将文件映射到进程地址空间，直接通过指针访问文件内容。
+
+```c++
+template <mode Mode = kDefaultMode, typename T>
+void write(std::filesystem::path const& p, T const& w) {
+  auto mmap =
+      cista::mmap{p.generic_string().c_str(), cista::mmap::protection::WRITE};
+  auto writer = cista::buf<cista::mmap>(std::move(mmap));
+  cista::serialize<Mode>(writer, w);
+}
+
+template <mode Mode = kDefaultMode, typename T>
+void write(std::filesystem::path const& p, wrapped<T> const& w) {
+  write<Mode>(p, *w);
+}
+
+template <typename T, mode Mode = kDefaultMode>
+cista::wrapped<T> read(std::filesystem::path const& p) {
+  auto b = cista::file{p.generic_string().c_str(), "r"}.content();
+  auto const ptr = cista::deserialize<T, Mode>(b);
+  auto mem = cista::memory_holder{std::move(b)};
+  return cista::wrapped{std::move(mem), ptr};
+}
+
+template <typename T, mode Mode = kDefaultMode>
+cista::wrapped<T> read_mmap(std::filesystem::path const& p) {
+  auto mmap =
+      cista::mmap{p.generic_string().c_str(), cista::mmap::protection::READ};
+  auto const ptr = cista::deserialize<T, Mode>(mmap);
+  auto mem = cista::memory_holder{buf{std::move(mmap)}};
+  return cista::wrapped{std::move(mem), ptr};
+}
+```
 
 
 ## hashmap实现
@@ -71,6 +116,7 @@ Raw Data Structures
 参考了[abseil的swiss tables](https://abseil.io/blog/20180927-swisstables)实现，在原先实现的上删除了多余的功能。
 
 swiss table从用法上分为两类：
+
 + absl::flat_hash_map and absl::flat_hash_set
 
 flat方式将value_type存储在容器的主数组中，以避免内存间接寻址。由于它们在重新哈希时会移动数据，因此元素无法保持指针稳定性。
@@ -83,11 +129,12 @@ flat方式将value_type存储在容器的主数组中，以避免内存间接寻
 
 ![](https://abseil.io/img/node_hash_map.svg)
 
-更推荐使用absl::flat_hash_map<K, std::unique_ptr<V>>方式替代absl::node_hash_map<K, V>。
+[blog/20180927-swisstables](https://abseil.io/blog/20180927-swisstables)中介绍，更推荐使用 absl::flat_hash_map\<K, std::unique_ptr\<V\>\>方式替代 absl::node_hash_map\<K, V\>。
 
 ### hash_storage实现
 
-核心实现是**hash_storage** struct, hash_storage采用**swiss_table**实现。在后面的文章的介绍。
+hashmap和hashset的核心实现是**hash_storage** struct, hash_storage采用**swiss_table**实现。在后面的文章的介绍。
+
 ```c++
 namespace raw {
 template <typename Key, typename Value, typename Hash = hashing<Key>,
@@ -140,13 +187,16 @@ struct generate_string{
 ```
 
 分为两种情况，own和non_own。也就是管理内存还是不管理内存。
+
 ```c++
   static constexpr struct owning_t {
   } owning{};
   static constexpr struct non_owning_t {
   } non_owning{};
 ```
+
 如果要从non_owning转换成owning，则需要调用std::memcpy。
+
 ```c++
 static constexpr msize_t short_length_limit = 15U / sizeof(CharT);
 
@@ -175,4 +225,14 @@ void set_owning(CharT const* str, msize_t const len) {
 
 ## 其它序列化库
 
-https://flatbuffers.dev/languages/rust/
++ Protocol Buffers
+
++ Cap’n Proto
+
++ [Flatbuffers](https://flatbuffers.dev/languages/rust/)
+
++ cereal
+
++ Boost Serialization
+
++ MessagePack

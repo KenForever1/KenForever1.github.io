@@ -9,23 +9,35 @@ comments: true
 ---
 
 ## 实现原理
+
+可以中cista库的介绍中看到如下内容：
+
+> Comes with a serializable high-performance hash map and hash set implementation based on Google's Swiss Table technique.
+
 swiss table的实现可以参考[简单了解下最近正火的SwissTable](https://www.cnblogs.com/apocelipes/p/17562468.html),讲解的很清晰。
 
 以三种实现hashmap的方式，看优缺点：
+
 + 链表法：指针稳定性，能采取扩容之外的手段阻止查询性能退化，比如把过长链表转换成搜索树。缺点：缓存不够友好，冲突较多的时候缓存命中率较低从而影响性能。
+
 + 线性探测法：缓存友好，加上冲突会有连锁影响，没有指针稳定性。
 
 <!-- more -->
 
 swiss table是为了改进哈希表本身的结构力求在缓存友好、性能和内存用量上找到平衡。
+
 > swisstable拥有惊人性能的主要原因：它尽量避免线性探测法导致的大量等值比较和链表法会带来的缓存命中率低下，以及在单位时间内它能同时过滤N个（通常为16，因为16x8=128，是大多数平台上SIMD指令专用的向量寄存器的大小）元素，且可以用位运算代替对数据的遍历。这会为哈希表的吞吐量带来质的飞跃。
 
 + 改进的线性探测方式，分group处理，可以SIMD指令加速处理。
+
 + swiss table采用了 control控制信息 和 slot存储数据 分离的方式进行存储。相比链式，数据局部性更好。
+
 + hash一共64位，57位为h1，用于锁定是slot位置。7位为h2，作为key。
+
 + resize扩容2倍。
 
-控制信息contrl中，下面的定义，表示了三种状态，都是1开头。如果是0开头，后面就是7为h2数据。
+控制信息contrl中，下面的定义，表示了三种状态，都是1开头。如果是0开头，后面就是7位h2数据。
+
 ```c++
 enum ctrl_t : int8_t {
     EMPTY = -128,  // 10000000

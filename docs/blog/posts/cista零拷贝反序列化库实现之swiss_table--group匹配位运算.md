@@ -61,8 +61,11 @@ bit_mask match(h2_t const hash) const noexcept {
 当前group的8个控制字节为：[0x12, 0x34, 0x56, 0x78, 0x12, 0x9A, EMPTY, DELETED]
 
 对应ctrl_值：0xFE80129A78563412 (小端序)
+
 EMPTY = 0x80, DELETED = 0xFE
+
 要匹配的h2值为：0x12
+
 ```c++
 === 开始匹配过程 ===
 控制字节(ctrl_) (0xff809a1278563412): 0x12 0x34 0x56 0x78 0x12 0x9a 0x80 0xff 
@@ -87,7 +90,9 @@ bit_mask match_empty() const noexcept {
   return bit_mask{(ctrl_ & (~ctrl_ << 6U)) & MSBS};
 }
 ```
+
 * 通过位运算找出EMPTY(-128)控制字节
+
 * 利用了EMPTY的特殊位模式(10000000)
 
 #### 通过一个例子来理解`match_empty`
@@ -96,7 +101,9 @@ bit_mask match_empty() const noexcept {
 [0x12, 0x34, EMPTY, 0x56, DELETED, EMPTY, 0x78, END]
 
 EMPTY = 0x80
+
 DELETED = 0xFE
+
 END = 0xFF
 
 对应的 64 位 ctrl_ 值为：0xFF8078FE56803412
@@ -118,7 +125,9 @@ bit_mask match_empty_or_deleted() const noexcept {
   return bit_mask{(ctrl_ & (~ctrl_ << 7U)) & MSBS};
 }
 ```
+
 * 类似`match_empty`但匹配EMPTY或DELETED状态
+
 * 利用了这两种状态的高位都是1的特性
 
 #### 通过一个例子来理解`match_empty_or_deleted`
@@ -144,7 +153,9 @@ std::size_t count_leading_empty_or_deleted() const noexcept {
   return (trailing_zeros(((~ctrl_ & (ctrl_ >> 7U)) | GAPS) + 1U) + 7U) >> 3U;
 }
 ```
+
 * 计算前导的EMPTY或DELETED槽位数量
+
 * 用于探测序列中快速跳过连续无效槽位
 
 使用方法：
@@ -212,7 +223,9 @@ bit_mask end() const noexcept { return bit_mask{0}; }
 ### 位操作
 
 * `trailing_zeros`: 计算最低位1的位置(以字节为单位)
+
 * `leading_zeros`: 计算最高位1的位置(以字节为单位)
+
 * 都使用了位运算优化，通过位移转换位索引到字节索引
 
 ```cpp
@@ -243,6 +256,7 @@ constexpr unsigned trailing_zeros(T t) noexcept {
     }
 }
 ```
+
 这个函数作用是返回输入数二进制表示从最低位开始(右起)的连续的0的个数；如果传入0则行为未定义。通过__builtin_ctzll实现。
 
 ```c++
@@ -255,6 +269,7 @@ constexpr unsigned leading_zeros(T t) noexcept {
     }
 }
 ```
+
 这个函数作用是返回输入数二进制表示从最高位开始(左起)的连续的0的个数；如果传入0则行为未定义。通过__builtin_clzll实现。
 
 ## 总结
