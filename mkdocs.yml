@@ -153,3 +153,6 @@ extra_javascript:
   - js/mathjax.js
   - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.bootcss.com/mathjax/3.0.5/es5/tex-mml-chtml.js
+
+# 配置参考
+# https://wcowin.work/blog/websitebeauty/recommend/#_1
