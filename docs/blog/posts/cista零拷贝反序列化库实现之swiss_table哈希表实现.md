@@ -8,13 +8,17 @@ labels: []
 comments: true
 ---
 
-## 实现原理
+朋友们，大家好！上文我们介绍了[C++零拷贝反序列化库 cista](https://mp.weixin.qq.com/s/KENr2Q4HoU9R75L-l95uoQ)，今天接着介绍一下 cista 库的实现。
 
-可以中cista库的介绍中看到如下内容：
+## swiss_table实现原理
+
+可以从cista库的介绍中看到如下内容：
 
 > Comes with a serializable high-performance hash map and hash set implementation based on Google's Swiss Table technique.
 
-swiss table的实现可以参考[简单了解下最近正火的SwissTable](https://www.cnblogs.com/apocelipes/p/17562468.html),讲解的很清晰。
+swiss table的实现可以参考[简单了解下最近正火的SwissTable](https://www.cnblogs.com/apocelipes/p/17562468.html)，讲解的很清晰。
+
+本小节大多数内容是站在巨人肩膀上，引用[简单了解下最近正火的SwissTable](https://www.cnblogs.com/apocelipes/p/17562468.html)，加上作者结合cista库的介绍。
 
 以三种实现hashmap的方式，看优缺点：
 
@@ -30,7 +34,7 @@ swiss table是为了改进哈希表本身的结构力求在缓存友好、性能
 
 + 改进的线性探测方式，分group处理，可以SIMD指令加速处理。
 
-+ swiss table采用了 control控制信息 和 slot存储数据 分离的方式进行存储。相比链式，数据局部性更好。
++ swiss table采用了 **control控制信息 和 slot存储数据** 分离的方式进行存储。相比链式，数据局部性更好。
 
 + hash一共64位，57位为h1，用于锁定是slot位置。7位为h2，作为key。
 
@@ -48,9 +52,23 @@ enum ctrl_t : int8_t {
 
 abseil的实现中，文章里也提到了，采用了SSE（SIMD指令）进行加速，一次同时比较一个Group（16个slot）。在cista中，没有实现SSE。
 
-在cista中通过位运算并行处理，虽然未使用实际SIMD指令，但通过64位整数运算模拟了并行处理8个控制字节的效果。所有操作都通过**精心设计的位运算**完成，避免了分支和循环。**内存局部性**：控制字节连续存储，充分利用CPU缓存。**状态快速判断**：可以一次性判断整个group的状态(全空/部分匹配等)。通过这些设计，使得Swiss Table在查找、插入等操作上获得高吞吐量。
+引用文章中的一张图说明swiss_table存储布局：
 
-## find查找实现
+![](https://raw.githubusercontent.com/KenForever1/CDN/main/swiss_table.jpg)
+
+在cista中通过位运算并行处理，虽然未使用实际SIMD指令，但通过64位整数运算模拟了并行处理8个控制字节的效果。
++ 所有操作都通过**精心设计的位运算**完成，避免了分支和循环。
+
++ **内存局部性**：控制字节连续存储，充分利用CPU缓存。
+
++ **状态快速判断**：可以一次性判断整个group的状态(全空/部分匹配等)。
+
+通过这些设计，使得Swiss Table在查找、插入等操作上获得高吞吐量。在hashmap的实现中，哈希函数的算法也很重要，一个更加高效“完美哈希函数”，可以减少冲突，减少等值比较，提高性能。
+
+## cista中swiss_table哈希表实现
+
+### find查找实现
+
 find_impl实现如下，可以看到通过h1确定查找的group，然后通过h2进行匹配，判断key相等，返回iterator。
 ```c++
 template <typename Key>
@@ -77,8 +95,13 @@ struct iterator {
     T* entry_{nullptr};
 }
 ```
-### entries_的初始化
-WIDTH为8，ALIGNMENT为alignof(T)。
+
+删除、插入操作的逻辑感兴趣的朋友推荐阅读[cista hashstorage源码](https://github.com/felixguendling/cista/blob/master/include/cista/containers/hash_storage.h)，希望本文可以帮助你更加快速理解实现。
+
+### 核心存储结构的初始化
+
+核心存储结构entries_的初始化代码如下，保存了slot数据和control数据。WIDTH为8，ALIGNMENT为alignof(T)。
+
 ```c++
   static constexpr size_type const WIDTH = 8U;
   static constexpr std::size_t const ALIGNMENT = alignof(T);
@@ -105,4 +128,4 @@ WIDTH为8，ALIGNMENT为alignof(T)。
   }
 ```
 
-在hashmap的实现中，哈希函数的算法也很重要，一个更加高效“完美哈希函数”，可以减少冲突，减少等值比较，提高性能。
+下篇文章，我将详细介绍Swiss Table中Group的代码实现，group匹配位运算。
