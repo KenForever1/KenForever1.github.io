@@ -13,6 +13,10 @@ a.md-nav__link{display:block; overflow:hidden; text-overflow:ellipsis; white-spa
 .md-tabs__link{font-size:.9rem;}
 .md-typeset{font-size:.75rem;}
 
+.md-post--excerpt {
+  margin-bottom: 0rem;
+}
+
 /* Grid background */
 /* .md-main {
   background-image: linear-gradient(rgba(50,0,0,0.05) 1px,transparent 0),linear-gradient(90deg,rgba(50,0,0,0.05) 1px,transparent 0);
