@@ -6,9 +6,8 @@ vssue: ""
 
 <div class="intro-container">
   <div class="intro-text">
-    <span class="greeting">您好，很高兴认识你 <span class="wave">👋</span></span>
-    <span class="name">我是 <span class="highlight">KenForever1</span></span>
-    <span class="name">能同途偶遇在这星球上，探索、记录、享受…</span>
+    <span class="greeting">您好，很高兴认识你 <span class="wave">👋</span>我是 <span class="highlight">KenForever1</span></span>
+    <span class="greeting">能同途偶遇在这星球上，探索、记录、享受…🎶🐧😆</span>
   </div>
 </div>
 

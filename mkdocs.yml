@@ -69,7 +69,7 @@ markdown_extensions:
           case: lower
   - pymdownx.highlight:
       anchor_linenums: true
-      # linenums: true # 显示行号
+      linenums: true # 显示行号
       auto_title: true # 显示编程语言名称
   - pymdownx.arithmatex:
       generic: true

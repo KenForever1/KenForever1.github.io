@@ -8,10 +8,10 @@ nav.md-nav.md-nav--secondary a.md-nav__link{white-space:normal;}
 a.md-nav__link{display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 
 .md-typeset h1, .md-typeset h2, .md-typeset h3, .md-typeset h4{font-weight: bold;}
-.md-typeset p{font-size:.85rem;}
+/* .md-typeset p{font-size:.85rem;}
 .md-typeset code, .md-typeset td{font-size:.7rem;}
 .md-tabs__link{font-size:.9rem;}
-.md-typeset{font-size:.75rem;}
+.md-typeset{font-size:.75rem;} */
 
 .md-post--excerpt {
   margin-bottom: 0rem;
