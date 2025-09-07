@@ -92,6 +92,356 @@ build/src/libggml.so: ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dy
 
 ![](https://raw.githubusercontent.com/KenForever1/CDN/main/ggml-debug1.png)
 
+
+## 探索ggml的实现--张量表示
+
+### ggml_tensor 数据结构
+
+在GGML中通过ggml_tensor结构体表示张量，结构体定义如下：
+
+```c++
+// n-dimensional tensor
+struct ggml_tensor {
+    // 张量的数据类型：例如GGML_TYPE_F32,GGML_TYPE_F16，GGML_TYPE_Q4_0
+    enum ggml_type type;
+
+    struct ggml_backend_buffer * buffer;
+
+    // 最大维度为4，GGML_MAX_DIMS为4
+    // ne存储张量每个维度的元素个数
+    // nb存储张量每个维的元素大小
+    int64_t ne[GGML_MAX_DIMS]; // number of elements
+    size_t  nb[GGML_MAX_DIMS]; // stride in bytes:
+                                // nb[0] = ggml_type_size(type)
+                                // nb[1] = nb[0]   * (ne[0] / ggml_blck_size(type)) + padding
+                                // nb[i] = nb[i-1] * ne[i-1]
+
+    // 张量op类型，在计算图中作为op node，后面会提到
+    // 例如矩阵乘类型，GGML_OP_MUL_MAT
+    // compute data
+    enum ggml_op op;
+
+    // op params - allocated as int32_t for alignment
+    int32_t op_params[GGML_MAX_OP_PARAMS / sizeof(int32_t)];
+
+    int32_t flags;
+
+    // 指针指向此张量的src张量
+    // 例如矩阵乘op tensor的src张量是矩阵A tensor和矩阵B tensor
+    struct ggml_tensor * src[GGML_MAX_SRC];
+
+    // 描述张量视图，如果此张量是另一个张量（base张量）的视图，则指向base张量
+    // source tensor and offset for views
+    struct ggml_tensor * view_src;
+    // 视图张量的偏移量
+    size_t               view_offs;
+
+    // 存储张量的数据
+    void * data;
+
+    // 张量的名称
+    char name[GGML_MAX_NAME];
+
+    void * extra; // extra things e.g. for ggml-cuda.cu
+
+    char padding[8];
+};
+```
+
+### 通过一个例子学习tensor
+
+在examples文件夹中添加一个simple-add.cpp的文件，添加如下内容：
+```c++
+#include "ggml.h"
+#include "ggml-cpu.h"
+#include <cstring>
+#include <iostream>
+#include <vector>
+
+int main () {
+    struct ggml_init_params params {
+        /*.mem_size   =*/ 1024 * 1024 * 1024 + ggml_graph_overhead(),
+        /*.mem_buffer =*/ NULL,
+        /*.no_alloc   =*/ false,
+    };
+
+    ggml_context * ctx = ggml_init(params);
+
+    // --------------------
+    // Modify this section to test different tensor computations
+    float a_data[3 * 2] = {
+        1, 2,
+        3, 4,
+        5, 6
+    };
+
+    float b_data[3 * 2] = {
+        1, 1,
+        1, 1,
+        1, 1
+    };
+    
+
+    // 因为ggml中tensor表示和pytorch相反，因此3行2列的矩阵，表示为[2, 3]
+    ggml_tensor* a = ggml_new_tensor_2d(ctx, GGML_TYPE_F32, 2, 3);
+    ggml_tensor* b = ggml_new_tensor_2d(ctx, GGML_TYPE_F32, 2, 3); 
+    memcpy(a->data, a_data, ggml_nbytes(a));
+    memcpy(b->data, b_data, ggml_nbytes(b));
+
+    ggml_tensor* result = ggml_add(ctx, a, b);
+    // --------------------
+
+    struct ggml_cgraph  * gf = ggml_new_graph(ctx);
+    ggml_build_forward_expand(gf, result);
+
+    ggml_graph_compute_with_ctx(ctx, gf, 1);
+
+    std::vector<float> out_data(ggml_nelements(result));
+    memcpy(out_data.data(), result->data, ggml_nbytes(result));
+    
+    ggml_free(ctx);
+    return 0;
+}
+```
+完善cmake配置，在CMakeLists.txt中添加以下内容：
+```cmake
+#
+# simple-add
+
+set(TEST_TARGET simple-add)
+add_executable(${TEST_TARGET} simple-add.cpp)
+target_compile_options(${TEST_TARGET} PRIVATE -g)
+target_link_libraries(${TEST_TARGET} PRIVATE ggml)
+```
+根据第一节的内容，编译然后就可以用vscode debug调试了。当完成ggml_new_tensor_2d创建2维张量时，并且通过memcpy拷贝赋值后。我们通过gdb打印tensor的数据，就可以看到数据了。
+```bash
+> p *a
+(ggml_tensor) {
+  type = GGML_TYPE_F32
+  buffer = nullptr
+  ne = ([0] = 2, [1] = 3, [2] = 1, [3] = 1)
+  nb = ([0] = 4, [1] = 8, [2] = 24, [3] = 24)
+  op = GGML_OP_NONE
+  op_params = {
+    [0] = 0
+    [1] = 0
+    [2] = 0
+    [3] = 0
+    [4] = 0
+    [5] = 0
+    [6] = 0
+    [7] = 0
+    [8] = 0
+    [9] = 0
+    [10] = 0
+    [11] = 0
+    [12] = 0
+    [13] = 0
+    [14] = 0
+    [15] = 0
+  }
+  flags = 0
+  src = {
+    [0] = nullptr
+    [1] = nullptr
+    [2] = nullptr
+    [3] = nullptr
+    [4] = nullptr
+    [5] = nullptr
+    [6] = nullptr
+    [7] = nullptr
+    [8] = nullptr
+    [9] = nullptr
+  }
+  view_src = nullptr
+  view_offs = 0
+  data = 0x00007fffb75eb1b0
+  name = ""
+  extra = 0x0000000000000000
+  padding = ""
+}
+```
+从上面的内容可以看到，ggml_tensor结构体的ne成员变量是一个数组，数组的元素个数是4，分别表示该张量的维度。例如，一个二维矩阵的ne成员变量为[2, 3, 1, 1]，表示该矩阵有3行2列，且行和列的索引从0开始。
+
+### tensor的内存布局
+
+#### f32矩阵
+
+对于ne的理解，比如一个RGB的图片，width为1920，height为1080， 用pytorch表示维度信息就是[1, 3, 1080, 1920],即[N, C, H, W]。而在GGML中，这个维度信息表示为：
+[1920, 1080, 3, 1]。
+
+```c++
+type = GGML_TYPE_F32
+buffer = nullptr
+ne = ([0] = 2, [1] = 3, [2] = 1, [3] = 1)
+// 4表示第一维每个元素所占字节数。8表示每行元素间隔8个字节，也就是间隔两个元素。
+// 也就是在内存存储的布局是row major连续存储的
+nb = ([0] = 4, [1] = 8, [2] = 24, [3] = 24)
+op = GGML_OP_NONE
+```
+ne只表示了矩阵的维度，而nb表示了矩阵在内存中的存储布局，以及每行元素间隔。
+
+### 量化矩阵
+
+在上面的例子任意地方加一行表示一个量化矩阵。
+```c++
+ggml_tensor* c = ggml_new_tensor_2d(ctx, GGML_TYPE_Q4_0, 32, 6);
+```
+
+通过`p *c` 可以查看矩阵的详细信息。
+```bash
+> p *c
+(ggml_tensor) {
+  type = GGML_TYPE_Q4_0
+  buffer = nullptr
+  ne = ([0] = 32, [1] = 6, [2] = 1, [3] = 1)
+  nb = ([0] = 18, [1] = 18, [2] = 108, [3] = 108)
+  op = GGML_OP_NONE
+  ......
+}
+```
+下面就分析认识一些Q4_0类型的矩阵表示有什么不同。
+```c++
+typedef uint16_t ggml_half;
+#define QK4_0 32
+typedef struct {
+    // 16bit存储delta信息, 2个字节
+    ggml_half d;           // delta
+    // 8bit数组，数组长度为：16， 16个字节
+    uint8_t qs[QK4_0 / 2]; // nibbles / quants
+} block_q4_0;
+static_assert(sizeof(block_q4_0) == sizeof(ggml_half) + QK4_0 / 2, "wrong q4_0 block size/padding");
+```
+在GGML中，一个block_q4_0结构体，可以表示32个int4元素，再加上一个16bit的delta信息。
+
+我们ne[0]和ne[1]分别为32, 16,表示了32行和16列的int4矩阵。而nb[0]为18，表示GGML的q4_0量化将32个int4元素组合在一起，再加上一个16位的差值，每组共18字节。
+
+[32, 6, 1, 1]的Q4_0数组就可以看成[1,6,1,1]，因为32个元素为内存上的最小寻址单元。更高维度的情况下，nb[i] = nb[i-1] * ne[i]。
+
+### 矩阵permute重排列
+
+看一个pytorch例子，了解permute是什么？permute就是对数据的维度变化顺序
+```c++
+import torch
+import numpy as np
+
+a=np.array([[[1,2,3],[4,5,6]]])
+unpermuted=torch.tensor(a)
+print(unpermuted.size())              #  ——>  torch.Size([1, 2, 3])
+
+permuted=unpermuted.permute(2,0,1)
+print(permuted.size())                #  ——>  torch.Size([3, 1, 2])
+```
+
+```c++
+tensor([[[ 1,  4]],
+        [[ 2,  5]],
+        [[ 3,  6]]])     # print(permuted)    
+```
+
+再看ggml中的permute操作，添加如下例子:
+```c++
+ggml_tensor* before = a;
+
+// Same as PyTorch's permute()
+ggml_tensor* after = ggml_permute(ctx, before, 1, 0, 2, 3);
+```
+观察before和after tensor信息，可以看到after的ne和nb中的0和1维度交换了，但是看data，其实数据内存存储本身是没有变化的。对于一个内存存储，要改变ne维度信息，只需要改变nb每个维度的间隔，也就是数据访问方式。
+
+```bash
+> p *before
+(ggml_tensor) {
+  type = GGML_TYPE_F32
+  buffer = nullptr
+  ne = ([0] = 2, [1] = 3, [2] = 1, [3] = 1)
+  nb = ([0] = 4, [1] = 8, [2] = 24, [3] = 24)
+  op = GGML_OP_NONE
+  view_src = nullptr
+  view_offs = 0
+  data = 0x00007fffb77eb1b0
+}
+
+> p *after
+(ggml_tensor) {
+  type = GGML_TYPE_F32
+  buffer = nullptr
+  ne = ([0] = 3, [1] = 2, [2] = 1, [3] = 1)
+  nb = ([0] = 8, [1] = 4, [2] = 24, [3] = 24)
+  op = GGML_OP_PERMUTE
+
+  view_src = 0x00007fffb77eb060
+  view_offs = 0
+  data = 0x00007fffb77eb1b0
+  name = " (permuted)"
+}
+```
+从view_src也可以看出after只是before的视图。
+
+```c++
+// Pseudo-code representation of tensor's memory layout
+data = [1,2,3,4,5,6]
+
+// Accessing row 1 before permutation, nb[0] = 4
+// 1, 2,
+// 3, 4,
+// 5, 6
+e0 = (p + nb[0] * 0) = 1
+e1 = (p + nb[0] * 1) = 2
+
+// Accessing row 1 after permutation, nb[0] = 8
+// [[1,3,5],
+//  [2,4,6]]
+e0 = (p + nb[0] * 0) = 0
+e1 = (p + nb[0] * 1) = (p + 8) = 3
+e1 = (p + nb[0] * 2) = (p + 16) = 5
+```
+
+### 张量视图
+
+视图可以对张量内存进行复用，避免拷贝、避免低效的为每个张量分配一个独特的内存块。
+
+以ggml_cpy操作为例，拷贝的b tensor就是相对于a创建的一个视图。
+
+```c++
+// ggml_cpy
+static struct ggml_tensor * ggml_cpy_impl(
+        struct ggml_context * ctx,
+        struct ggml_tensor  * a,
+        struct ggml_tensor  * b) {
+    GGML_ASSERT(ggml_nelements(a) == ggml_nelements(b));
+
+    // make a view of the destination
+    struct ggml_tensor * result = ggml_view_tensor(ctx, b);
+    if (strlen(b->name) > 0) {
+        ggml_format_name(result, "%s (copy of %s)", b->name, a->name);
+    } else {
+        ggml_format_name(result, "%s (copy)", a->name);
+    }
+
+    result->op     = GGML_OP_CPY;
+    result->src[0] = a;
+    result->src[1] = b;
+
+    return result;
+}
+```
+
+以LLM中Q、K、V tensor为例，下面的Qcur、Kcur、Vcur可以表示成创建的tensor_input的一部分。所以视图不用是base tensor的全部，可以只是一部分，通过offset可以设置相对base tensor的偏移量。
+```c++
+struct ggml_tensor* tensor_input = ggml_new_tensor_2d(ctx, GGML_TYPE_32, 768*3, seq_len);
+
+// Create a view tensor of shape (768, seq_len) with offset 0
+// The last parameter of ggml_view_2d specifies the view's offset (in bytes)
+struct ggml_tensor *Qcur = ggml_view_2d(ctx0, tensor_input, 768, seq_len, cur->nb[1], 0 * sizeof(float) * 768);
+
+// Create a view tensor of shape (768, seq_len) with offset 768
+struct ggml_tensor *Kcur = ggml_view_2d(ctx0, tensor_input, 768, seq_len, cur->nb[1], 1 * sizeof(float) * 768);
+
+// Create a view tensor of shape (768, seq_len) with offset 768 * 2
+struct ggml_tensor *Vcur = ggml_view_2d(ctx0, tensor_input, 768, seq_len, cur->nb[1], 2 * sizeof(float) * 768);
+```
+
+
 ## 探索ggml的实现--GGML的内存管理
 
 本小节通过最简单的一个例子, ./examples/simple/simple-ctx.cpp，理解GGML实现两个矩阵执行矩阵乘法的核心工作流程。
