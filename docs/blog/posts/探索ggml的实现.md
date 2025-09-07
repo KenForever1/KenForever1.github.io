@@ -433,3 +433,104 @@ static size_t ggml_bitset_size(size_t n) {
 
 ![](https://raw.githubusercontent.com/KenForever1/CDN/main/ggml_graph_graph2.png)
 
+### 构建矩阵乘计算图
+
+前面的内容介绍了在ggml_context中分配一个计算图内存，并且初始化了相关成员默认值。
+
+```c++
+struct ggml_cgraph  * gf = ggml_new_graph(model.ctx);
+
+// 用gf表示矩阵乘任务
+// result = a*b^T
+struct ggml_tensor * result = ggml_mul_mat(model.ctx, model.a, model.b);
+ggml_build_forward_expand(gf, result);
+```
+
+现在这个计算图gf支持添加2048个张量节点和叶节点，但是还没有将矩阵乘这个计算的节点加入计算图。接下来的内容就是介绍如何将矩阵乘任务信息用计算图进行表示。
+
+在ggml_mul_mat函数中，首先检查输入张量的合法性，然后创建一个结果张量，并设置张量的运算类型为矩阵乘。
+```c++
+struct ggml_tensor * ggml_mul_mat(
+        struct ggml_context * ctx,
+        struct ggml_tensor  * a,
+        struct ggml_tensor  * b) {
+    GGML_ASSERT(ggml_can_mul_mat(a, b));
+    GGML_ASSERT(!ggml_is_transposed(a));
+
+    // 计算结果的shape
+    const int64_t ne[4] = { a->ne[1], b->ne[1], b->ne[2], b->ne[3] };
+    struct ggml_tensor * result = ggml_new_tensor(ctx, GGML_TYPE_F32, 4, ne);
+
+    // 将加入graph nodes中的一个node，类型位矩阵乘
+    result->op     = GGML_OP_MUL_MAT;
+    result->src[0] = a;
+    result->src[1] = b;
+
+    return result;
+}
+```
+
+现在，到了我们构建计算图的最后阶段了，秘密就藏在ggml_build_forward_expand函数中。
+
+函数的输入参数是我们创建的“空图”和矩阵乘任务所返回的矩阵乘结果节点（在复杂的案例中，就是模型的输出节点或者LLM中的logits）。
+
+#### ggml_build_forward_expand 函数细节探索
+
+该函数调用到了ggml_build_forward_impl函数，核心实现在ggml_visit_parents中。
+
+```c++
+static void ggml_build_forward_impl(struct ggml_cgraph * cgraph, struct ggml_tensor * tensor, bool expand) {
+    const int n0 = cgraph->n_nodes;
+
+    ggml_visit_parents(cgraph, tensor);
+
+    const int n_new = cgraph->n_nodes - n0;
+    GGML_PRINT_DEBUG("%s: visited %d new nodes\n", __func__, n_new);
+
+    if (n_new > 0) {
+        // the last added node should always be starting point
+        GGML_ASSERT(cgraph->nodes[cgraph->n_nodes - 1] == tensor);
+    }
+}
+```
+
+ggml_visit_parents函数通过递归的方式构建了计算图。
+
+![](https://raw.githubusercontent.com/KenForever1/CDN/main/ggml_visit_parents-1.png)
+
+![](https://raw.githubusercontent.com/KenForever1/CDN/main/ggml_visit_parents-2.png)
+
+核心逻辑：
+
++ 检查当前张量是否已存在于哈希表中。如果存在，则停止执行并返回。
+
++ 对所有src张量递归调用ggml_visit_parents函数。
+
++ 如果它是一个叶节点（即常量张量或不由运算生成的输入张量），则将其存储在图的叶数组（leafs数组）中。
+
++ 否则，将其存储在图的节点数组（nodes数组）中。
+
+所有递归调用返回后，最后一次检查会确保最后记录的节点是结果张量。因为使用了后序遍历，这意味着输入节点（张量）是最后插入的。
+
+采用debug打印gf计算图信息，1个node节点就是mat mul op节点，两个leaf节点就是两个输入张量a、b矩阵。
+```c++
+> p *gf
+(ggml_cgraph) {
+  size = 2048
+  n_nodes = 1
+  n_leafs = 2
+  nodes = 0x000055555556ddd8
+  grads = nullptr
+  grad_accs = nullptr
+  leafs = 0x0000555555571dd8
+  use_counts = 0x0000555555575dd8
+  visited_hash_set = {
+    size = 4099
+    used = 0x0000555555581e00
+    keys = 0x0000555555579de8
+  }
+  order = GGML_CGRAPH_EVAL_ORDER_LEFT_TO_RIGHT
+}
+```
+
+到目前为止，我们已经构建好了a、b矩阵乘这个任务的计算图，接下来就是看GGML如何执行这个计算图并获取计算结果了。
