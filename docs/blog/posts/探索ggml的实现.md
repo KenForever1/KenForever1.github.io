@@ -304,3 +304,132 @@ nb[3] = nb[2] * ne[2];
 + ggml_context中通过链表来管理内存，每个节点都是ggml_object结构体，隐式管理tensor张量、计算图、work buffer等资源。
 
 + ggml_tensor的维度表示和pytorch是相反的，这个需要注意。
+
+## 探索ggml的实现--GGML计算图
+
+本小节介绍GGML如何构建和管理计算图相关的数据结构。
+
+### 在ggml_context中创建计算图
+
+上一节，完成了ggml_context的创建，并且完成了矩阵计算所需的ggml_tensor张量的创建。(load_model函数中实现的功能)
+
+```c++
+simple_model model;
+load_model(model, matrix_A, matrix_B, rows_A, cols_A, rows_B, cols_B);
+
+// perform computation in cpu
+struct ggml_tensor * result = compute(model);
+```
+
+接下来重点研究的就是compute函数，分为构建计算图、执行图计算、获取结果（获取最后一个计算节点的输出结果）三个步骤。
+
+```c++
+// compute with backend
+struct ggml_tensor * compute(const simple_model & model) {
+    struct ggml_cgraph * gf = build_graph(model);
+
+    int n_threads = 1; // number of threads to perform some operations with multi-threading
+
+    ggml_graph_compute_with_ctx(model.ctx, gf, n_threads);
+
+    // in this case, the output tensor is the last one in the graph
+    return ggml_graph_node(gf, -1);
+}
+```
+
+在build_graph函数中，首先会调用**ggml_new_graph**，这个函数可以和前一节中ggml_new_tensor函数一样的方式理解。它也是创建了ggml_object对象，但是不同的是，**这个object管理的是计算图（ggml_cgraph结构体对象）**，而不是tensor张量。
+
+![](https://raw.githubusercontent.com/KenForever1/CDN/main/ggml-new-graph-custom.png)
+
++ 通过ggml_graph_nbytes函数获取计算图需要占用的内存大小
+
++ ggml_new_object根据计算图大小在ggml_context内存区域中分配一块内存，创建ggml_object对象
+
++ 通过offs偏移获取ggml_object中管理的ggml_cgraph结构体对象指针，完成计算图的构建
+
+现在我们再对细节进行展开介绍：
+
+#### ggml_gral_nbytes计算细节
+
+GGML_DEFAULT_GRAPH_SIZE是一个宏定义，默认值为2048。定义了单个ggml_cgraph中可分配的最大节点树和leaf（叶节点）张量数。然后使用ggml_hash_size函数计算hash表需要的内存大小，乘以2是需要管理nodes和leafs两种类型。
+
+```c++
+
+// 调用ggml_new_graph_custom传递的参数
+ggml_new_graph_custom(ctx, GGML_DEFAULT_GRAPH_SIZE, false);
+
+#define GGML_DEFAULT_GRAPH_SIZE 2048
+
+static size_t ggml_graph_nbytes(size_t size, bool grads) {
+    size_t hash_size = ggml_hash_size(size * 2);
+    void * p = 0;
+    incr_ptr_aligned(&p, sizeof(struct ggml_cgraph), 1);
+    incr_ptr_aligned(&p, size * sizeof(struct ggml_tensor *), sizeof(struct ggml_tensor *)); // nodes
+    incr_ptr_aligned(&p, size * sizeof(struct ggml_tensor *), sizeof(struct ggml_tensor *)); // leafs
+    incr_ptr_aligned(&p, hash_size * sizeof(int32_t), sizeof(int32_t)); // use_counts
+    incr_ptr_aligned(&p, hash_size * sizeof(struct ggml_tensor *), sizeof(struct ggml_tensor *)); // hash keys
+    if (grads) {
+        incr_ptr_aligned(&p, hash_size * sizeof(struct ggml_tensor *), sizeof(struct ggml_tensor *)); // grads
+        incr_ptr_aligned(&p, hash_size * sizeof(struct ggml_tensor *), sizeof(struct ggml_tensor *)); // grad_accs
+    }
+    // 计算hash_size需要多少个ggml_bitset_t表示状态，这些多个ggml_bitset_t构成了bit位图
+    incr_ptr_aligned(&p, ggml_bitset_size(hash_size) * sizeof(ggml_bitset_t), sizeof(ggml_bitset_t));
+
+    size_t nbytes = (size_t) p;
+    return nbytes;
+}
+```
+
+ggml_hash_size从其实现来看，通过二分查找找到大于或等于2 * GGML_DEFAULT_GRAPH_SIZE的最小质数，这个质数决定了计算图哈希表的大小。选择质数主要是出于性能考虑：GGML采用了一种简单的开放地址哈希函数，并使用线性探测法。
+
+```c++
+// the last 4 bits are always zero due to alignment
+Key = (ggml_tensor_pointer_value >> 4) % table_size
+```
+
+>>> 使用质数表大小有助于更均匀地分布键，减少聚集、提高查找效率。
+
+ggml_graph的内存布局：
+
++ ggml_cgraph结构体对象占用空间：sizeof(struct ggml_cgraph)
+
++ 2048个tensor张量指针，指向nodes
+
++ 2048个tensor张量指针，指向leafs
+
++ hash_size个int32_t，用于记录张量的使用次数
+
++ hash_size个tensor张量指针，用于存储张量的哈希键
+
++ 梯度相关，simple_ctx例子不涉及
+
++ 哈希表bit位图，用于记录张量的使用情况
+
+关于bit位图，
+
+```c++
+typedef uint32_t ggml_bitset_t;
+
+static_assert(sizeof(ggml_bitset_t) == 4, "bitset_t constants must be updated");
+#define BITSET_SHR 5 // log2(sizeof(ggml_bitset_t)*8)
+#define BITSET_MASK (sizeof(ggml_bitset_t)*8 - 1)
+
+
+// >> BITSET_SHR相当于除以32，表示数字n的bit记录位于第几个ggml_bitset_t中
+// 一个ggml_bitset_t可以表示32个数的状态，在本文上下文中即表示一个hash位置
+static size_t ggml_bitset_size(size_t n) {
+    return (n + BITSET_MASK) >> BITSET_SHR;
+}
+
+```
+
+根据ggml_graph_nbytes函数计算出来的内存大小，在ctx中分配内存，分配后的内存布局如下：
+
+
+![](https://raw.githubusercontent.com/KenForever1/CDN/main/ggml_graph_graph1.png)
+
+包括计算图对象、节点指针、叶子指针、使用次数、哈希键、梯度、哈希表bit位图。接下来的几行代码初始化指向已分配内存中不同区域的指针，并将它们存储在ggml_cgraph结构体中。最后，哈希表被重置，所有槽位都被标记为未占用。
+
+
+![](https://raw.githubusercontent.com/KenForever1/CDN/main/ggml_graph_graph2.png)
+
