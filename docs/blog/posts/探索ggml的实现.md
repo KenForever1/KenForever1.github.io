@@ -305,7 +305,7 @@ nb[3] = nb[2] * ne[2];
 
 + ggml_tensor的维度表示和pytorch是相反的，这个需要注意。
 
-## 探索ggml的实现--GGML计算图
+## 探索ggml的实现--GGML计算图构建
 
 本小节介绍GGML如何构建和管理计算图相关的数据结构。
 
@@ -534,3 +534,313 @@ ggml_visit_parents函数通过递归的方式构建了计算图。
 ```
 
 到目前为止，我们已经构建好了a、b矩阵乘这个任务的计算图，接下来就是看GGML如何执行这个计算图并获取计算结果了。
+
+## 探索ggml的实现--执行GGML计算图
+
+这节主要介绍如何计算GGML计算图，实现的核心逻辑在ggml_graph_compute_with_ctx函数中。
+
+```c++
+int n_threads = 1; // number of threads to perform some operations with multi-threading
+
+ggml_graph_compute_with_ctx(model.ctx, gf, n_threads);
+
+// in this case, the output tensor is the last one in the graph
+return ggml_graph_node(gf, -1);
+```
+
+在该函数中，首先创建了个一个计算计划，并且根据cplan的work_size分配了完成这个plan所需的buffer，然后调用ggml_graph_compute函数执行计算计划。
+
+```c++
+enum ggml_status ggml_graph_compute_with_ctx(struct ggml_context * ctx, struct ggml_cgraph * cgraph, int n_threads) {
+    struct ggml_cplan cplan = ggml_graph_plan(cgraph, n_threads, NULL);
+
+    cplan.work_data = (uint8_t *)ggml_new_buffer(ctx, cplan.work_size);
+
+    return ggml_graph_compute(cgraph, &cplan);
+}
+```
+
+ggml_cplan结构体的核心目的是：**确定计算的关键执行参数**。
+
++ n_threads：用于图计算的线程数，这个设置为了1。
+
++ work_size：计算计划所需的临时内存大小（字节为单位）。在simple-ctx这个示例中，这个值被设置为0，不同的后端和op需要的work_size有不同。
+
+### 探索ggml_graph_plan细节
+
+#### 如何确定线程数量
+
+ggml_graph_plan函数实现的主要功能就是确定计算计划所需的线程数和临时内存大小。
+
+确定线程数的逻辑：
+
++ 首先，传递的参数n_threads决定了cplan的线程数上限。
+
++ 通过迭代所有的op node，根据op类型的线程限制和n_threads参数，确max_threads。（通过op的swich case实现）
+
++ 最终线程计算如下：
+  
+```c++
+final_n_threads = MIN(n_threads, MAX(each node's maximum multithreading count))
+```
+
+#### 确定工作缓存区大小
+
++ 遍历所有的op node，根据每个op type以及计算的数据类型（比如计算的矩阵乘两个参数数据类不同，需要额外的缓存区），确定需要的临时内存大小。
+
++ 最终工作缓存区大小计算如下：
+```c++
+final_work_buffer_size = MAX(each node's required work buffer size)
+```
+
+在simple-ctx这个例子中，threads_count = 1， work_buffer_size = 0。在接下来的函数ggml_new_buffer中，可以看到分配的work_buffer_size大小的缓存区，也是在context的内存buffer中分配的。
+
+```c++
+> p cplan
+(ggml_cplan) {
+  work_size = 0
+  work_data = 0x00005555555821d0 ""
+  n_threads = 1
+  threadpool = NULL
+  abort_callback = 0x0000000000000000
+  abort_callback_data = 0x0000000000000000
+}
+```
+
+### 计算图的执行计算
+
+到目前为止，为了执行计算图，已经准备好了张量数据、计算图、计算计划（plan），执行的关键逻辑来到了ggml_graph_compute函数，将计算图cgraph和cplan作为参数传入。
+
+```c++
+ggml_graph_compute(cgraph, &cplan);
+```
+
+![](https://raw.githubusercontent.com/KenForever1/CDN/main/ggml-graph-compute.png)
+
+在ggml_graph_compute函数中, 实现了如下核心功能：
+
++ 在ggml_cpu_init函数中，创建了一些快速计算的查找表。比如f32到f16的转换表、gelu计算的查找表。
+
+```c++
+ggml_table_f32_f16[i] = f;
+ggml_table_gelu_f16[i] = GGML_CPU_FP32_TO_FP16(ggml_gelu_f32(f));
+ggml_table_gelu_quick_f16[i] = GGML_CPU_FP32_TO_FP16(ggml_gelu_quick_f32(f));
+```
+
++ 创建了线程池，将计算图和计算任务dispath给线程池执行。在linux下，ggml采用pthread实现线程相关操作。（关于GGML_USE_OPENMP的逻辑可以先跳过）
+
+
+#### GGML线程池实现
+
+GGML 实现了一个线程池，该线程池经过优化，可高效运行计算图，并针对 NUMA 架构进行了优化。
+
+ggml首先使用默认参数初始化一个ggml_thread_pool结构体，然后为每个工作线程分配一个状态结构体（ggml_compute_state），负责线程池中的每个线程的状态记录：
+```c++
+// Per-thread state
+struct ggml_compute_state {
+#ifndef GGML_USE_OPENMP
+    // linux下实际为pthread
+    ggml_thread_t thrd;
+    // 用于设置cpu亲和性（NUMA相关优化）
+    bool cpumask[GGML_MAX_N_THREADS];
+    int  last_graph;
+    bool pending;
+#endif
+    // 指向线程池的指针
+    struct ggml_threadpool * threadpool;
+    // 线程编号
+    int ith;
+};
+
+```
+
+如果启用了 OpenMP，线程管理会自动处理；否则，GGML 会手动创建和管理 pthread，即手动设置cpu亲和性等操作。
+
+![](https://raw.githubusercontent.com/KenForever1/CDN/main/ggml_threadpool.png)
+
+#### cpu亲和性设置
+
+由于在numa架构下，本地/远程内存访问速度差异大，通过NUMA感知调度（如线程绑定、内存分配优化）可提升性能‌。通过设置cpu亲和性，绑定线程到本地NUMA节点，减少远程访问‌。
+
+在ggml的实现中，通过函数ggml_thread_cpumask_next()为每个worker线程分配cpu亲和性。
+
+```c++
+static void ggml_thread_cpumask_next(const bool * global_mask, bool * local_mask, bool strict, int32_t* iter) {
+    if (!strict) {
+        memcpy(local_mask, global_mask, GGML_MAX_N_THREADS);
+        return;
+    } else {
+        memset(local_mask, 0, GGML_MAX_N_THREADS);
+        int32_t base_idx = *iter;
+        for (int32_t i = 0; i < GGML_MAX_N_THREADS; i++) {
+            int32_t idx = base_idx + i;
+            if (idx >= GGML_MAX_N_THREADS) {
+                // Just a cheaper modulo
+                idx -= GGML_MAX_N_THREADS;
+            }
+            if (global_mask[idx]) {
+                local_mask[idx] = 1;
+                *iter = idx + 1;
+                return;
+            }
+        }
+    }
+}
+```
+
+在该函数中通过strict参数控制线程的亲和性设置。
+
++ 如果strict为false，则将全局mask复制给线程的mask。在没有NUMA的架构中，这会导致所有线程都被允许在任何核心上运行。
+
++ 如果strict为true，则通过循环遍历全局mask，找到第一个可用的CPU核心，并将其分配给线程。
+
+这种逻辑确保线程在可用的CPU核心之间均匀分布，从而减少竞争。
+
+#### 计算图工作线程创建及调度
+
+上面的逻辑完成了线程池的创建、亲和性的设置，接下来就是创建具体的工作线程了，也就是线程跑起来要执行怎样的运算逻辑。
+
+注意，这里创建工作线程是从thread 1开始的，因为thread 0的触发不在这里。
+```c++
+for (int j = 1; j < tpp->n_threads; j++) {
+    int32_t rc = ggml_thread_create(&workers[j].thrd, NULL, ggml_graph_compute_secondary_thread, &workers[j]);
+}
+```
+
+接下来，请看ggml_graph_compute_secondary_thread函数。
+
+```c++
+static thread_ret_t ggml_graph_compute_secondary_thread(void* data) {
+    struct ggml_compute_state * state = (struct ggml_compute_state *) data;
+    struct ggml_threadpool * threadpool = state->threadpool;
+
+    // 设置线程优先级
+    ggml_thread_apply_priority(threadpool->prio);
+    if (ggml_thread_cpumask_is_valid(state->cpumask)) {
+        // 设置线程 affinity
+        ggml_thread_apply_affinity(state->cpumask);
+    }
+
+    while (true) {
+        // Check if we need to sleep
+        while (threadpool->pause) {
+            GGML_PRINT_DEBUG("thread #%d inside pause loop\n", state->ith);
+            ggml_mutex_lock_shared(&threadpool->mutex);
+            if (threadpool->pause) {
+                ggml_cond_wait(&threadpool->cond, &threadpool->mutex);
+            }
+            GGML_PRINT_DEBUG("thread #%d resuming after wait\n", state->ith);
+            ggml_mutex_unlock_shared(&threadpool->mutex);
+        }
+
+        // This needs to be checked for after the cond_wait
+        if (threadpool->stop) break;
+
+        // Check if there is new work
+        // The main thread is the only one that can dispatch new work
+
+        ggml_graph_compute_check_for_work(state);
+        if (state->pending) {
+            state->pending = false;
+
+            ggml_graph_compute_thread(state);
+        }
+    }
+
+    return (thread_ret_t) 0;
+}
+```
+可以看到工作线程不是上来就开始执行，而是通过threadpool->pause进行了暂停等待。
+
+让我们回头看看主线程中的ggml_graph_compute逻辑，它首先创建线程池，也就是上面的部分。创建好从1开始的工作线程后，然后调用了ggml_graph_compute_kickoff，就是它把线程池的pause设置为false。
+
+然后线程0在这个启动其它线程的线程开始执行ggml_graph_compute_thread计算任务。
+```c++
+enum ggml_status ggml_graph_compute(struct ggml_cgraph * cgraph, struct ggml_cplan * cplan) {
+    // Kick all threads to start the new graph
+    ggml_graph_compute_kickoff(threadpool, n_threads);
+
+    // This is a work thread too
+    ggml_graph_compute_thread(&threadpool->workers[0]);
+}
+```
+
+
+
+### 多线程如何执行矩阵乘张量计算
+GGML的所有线程每次只处理一个节点。让我们看看ggml_compute_forward，其中会根据节点的运算符类型选择实际的计算函数。这是通过一个庞大的switch-case语句块来处理的。
+
+```c++
+static thread_ret_t ggml_graph_compute_thread(void * data) {
+    struct ggml_compute_state * state = (struct ggml_compute_state *) data;
+    struct ggml_threadpool    * tp    = state->threadpool;
+
+    const struct ggml_cgraph * cgraph = tp->cgraph;
+    const struct ggml_cplan  * cplan  = tp->cplan;
+
+    set_numa_thread_affinity(state->ith);
+
+    struct ggml_compute_params params = {
+        /*.ith       =*/ state->ith,
+        /*.nth       =*/ atomic_load_explicit(&tp->n_threads_cur, memory_order_relaxed),
+        /*.wsize     =*/ cplan->work_size,
+        /*.wdata     =*/ cplan->work_data,
+        /*.threadpool=*/ tp,
+    };
+
+    for (int node_n = 0; node_n < cgraph->n_nodes && atomic_load_explicit(&tp->abort, memory_order_relaxed) != node_n; node_n++) {
+        struct ggml_tensor * node = cgraph->nodes[node_n];
+
+        ggml_compute_forward(&params, node);
+
+        if (state->ith == 0 && cplan->abort_callback &&
+                cplan->abort_callback(cplan->abort_callback_data)) {
+            atomic_store_explicit(&tp->abort, node_n + 1, memory_order_relaxed);
+            tp->ec    = GGML_STATUS_ABORTED;
+        }
+
+        if (node_n + 1 < cgraph->n_nodes) {
+            ggml_barrier(state->threadpool);
+        }
+    }
+
+    ggml_barrier(state->threadpool);
+
+    return 0;
+}
+
+```
+ggml_compute_forward调用的是ggml_compute_forward_mul_mat的实现，完成矩阵乘法。
+
+```c++
+case GGML_OP_MUL_MAT:
+    {
+        ggml_compute_forward_mul_mat(params, tensor);
+    } break;
+```
+
+查看ggml_compute_forward_mul_mat的实现可知，矩阵的计算不是一个线程完成整个矩阵的计算，而是传递了thread_id参数，根据thread_id来拆分矩阵块，分块计算。
+
+这里也可以看到GGML的计算图执行调度和一般图计算的区别，一般场景的有向无环图，多个线程并行执行多个可以并行的node，这里GGML是一次只执行一个node，node中多个线程分块计算。然后进入下一个节点计算。
+
+一旦一个节点node的计算完成，所有线程都会在屏障ggml_barrier处同步，确保它们在进入下一个节点之前完成当前节点的计算。这个过程会重复进行，直到图中的所有节点都被评估完毕。
+
+上面更多的谈到的是不使用OpenMP，手动管理线程的凡是。如果启用OpenMP后，它会自动管理并行计算，无需手动创建和同步线程。我们无需自己处理线程池、条件变量和竞争条件，只需设置线程数量，让每个线程执行ggml_graph_compute_thread即可。
+
+### 获取计算结果
+
+```c++
+// perform computation in cpu
+struct ggml_tensor * result = compute(model);
+
+// get the result data pointer as a float array to print
+std::vector<float> out_data(ggml_nelements(result));
+memcpy(out_data.data(), result->data, ggml_nbytes(result));
+
+// expected result:
+// [ 60.00 55.00 50.00 110.00
+//   90.00 54.00 54.00 126.00
+//   42.00 29.00 28.00 64.00 ]
+```
+
+最后就是获取result node，然后将计算结果拷贝出来。到此，通过simple-ctx的例子，我们从源码理解了GGML如何实现在ggml_context中分配所有需要的内存，通过cpu backend的方式执行计算图。
