@@ -9,7 +9,9 @@ comments: true
 ---
 <!-- more -->
 
-### 背景介绍
+## 背景介绍
+
+本文介绍了tritonserver中，如何通过共享内存和子进程通信，主要介绍共享内存管理的封装以及c++ boost inprocess模块的使用。这块功能是可以复用的，可以用于其他场景。
 
 tritonserver作为一个AI推理服务，支持python backend的方式，通过python 子进程方式运行模型或者自定义的逻辑。
 
@@ -20,19 +22,17 @@ tritonserver作为一个AI推理服务，支持python backend的方式，通过p
 
 这就设计了进程之间的通信，如果通过网络通信，性能会下降，这里采用了shm（共享内存）的方式。
 
-本文介绍了tritonserver中，如何通过共享内存和子进程通信，主要介绍共享内存管理的封装以及c++ boost inprocess模块的使用。这块功能是可以复用的，可以用于其他场景。
-
-### 共享内存和消息队列的设计
+## 共享内存和消息队列的设计
 
 这里进程间通信，设计了一个消息队列，承载消息队列的载体是共享内存，即通过共享内存来存储消息队列。
 
 既然是跨进程间传输数据的消息队列，那么肯定两个进程都会获取同一个消息队列的句柄，生产者创建（create）并且发送（push）消息，消费者load消息队列并且消费（pop）消息。
 
-### 从parent进程视角看
+## 从parent进程视角看
 
 parent进程创建了消息队列，push消息到消息队列stub_message_queue_，然后等待子进程消费消息。然后从parent_message_queue_接受子进程返回的消息。
 
-#### 共享内存以及消息队列的创建
+### 共享内存以及消息队列的创建
 
 例如下面是MessageQueue类创建的几种不同的消息队列，用于parent进程和stub进程之间的通信，消息队列的类型是bi::managed_external_buffer::handle_t。
 
@@ -89,7 +89,9 @@ struct IPCControlShm {
 };
 ```
 
-##### 发送消息
+### 发送消息
+
+下面的代码描述了如何从parent进程发送一个initialize_message给到stub进程。构造一个IPCMessage类型的消息，为消息赋值，再将消息Push到stub_message_queue_中。
 
 ```c++
 std::unordered_map<std::string, std::string> initialize_map = {
@@ -113,7 +115,9 @@ initialize_message->Args() = initialize_map_handle;
 stub_message_queue_->Push(initialize_message->ShmHandle());
 ```
 
-##### 接收消息
+### 接收消息
+
+上小节提到的initialize_message是如何被接收处理的呢？看下面的代码，ReceiveMessageFromStub函数接受消息，然后通过shm_pool_共享内存方式获取消息具体的内容。
 
 ```c++
 bi::managed_external_buffer::handle_t message;
@@ -143,7 +147,7 @@ message = parent_message_queue_->Pop(
     timeout_miliseconds /* duration ms */, success);
 ```
 
-### 从stub进程视角看
+## 从stub进程视角看
 
 从stub进程，也就是python子进程视角看，它就不是创建共享内存了。而是使用parent进程创建的共享内存，然后通过LoadFromSharedMemory方法load创建好的消息队列，直接使用。
 ```c++
@@ -161,7 +165,9 @@ stub_message_queue_ = MessageQueue<bi::managed_external_buffer::handle_t>::
 ```
 上面说了parent给stub发送了一个initialize_message，stub进程收到后，会回复一个initialize_response。子进程通过Pop从stub_message_queue_接受消息。
 
-#### 接收消息
+### 接收消息
+
+stub进程如何接受消息呢？上面提到parent进程发送消息就是将消息入队列stub_message_queue_，在stub进程的调用的PopMessage函数中，就是通过Pop从队列中取消息。
 ```c++
 std::unique_ptr<IPCMessage>
 Stub::PopMessage()
@@ -194,9 +200,11 @@ case PYTHONSTUB_CommandType::PYTHONSTUB_InitializeRequest:
 //...
 }
 ```
-#### pybind11调用python逻辑
+### pybind11调用python逻辑
 
-stub是一个c++实现的进程，它收到initialize_message后，会通过pybind11库。pybind11库可以调用用户实现的python逻辑，比如获取python类、调用类功能函数。这里简单放一下代码：
+stub是一个c++实现的进程，它收到initialize_message后，会通过pybind11库。
+
+pybind11库可以调用用户实现的python逻辑，比如获取python类、调用类功能函数。这里简单放一下代码，很容易理解：
 
 ```c++
 #include <pybind11/embed.h>
@@ -240,7 +248,7 @@ Stub::Initialize(bi::managed_external_buffer::handle_t map_handle)
 }
 ```
 
-### 总结
+## 总结
 
 本文由于篇幅限制，介绍了triton的IPC通信机制，以及stub进程的初始化过程，以及介绍stub进程如何执行用户实现的python逻辑。其中的进程间通信机制和pybind11调用python逻辑，可以复用到你自己的项目中。这种跨语言调用很常见，常见的还有c++中调用lua、调用js等。
 
