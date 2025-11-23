@@ -41,7 +41,7 @@ comments: true
 
 + 我们可以根据想要的图片，计算出不同的K值，就可以渲染不同的图片。比如：
 
-不同的K值可以画出不同的效果(这里提供的K值按照公式画出来是倒着的镜像图片，所以代码里面y = height-y-1上下翻转了一下)。可以执行下python代码，也就可以把K值复制到网站里面[keelyhill.github.io/tuppers-formula](https://keelyhill.github.io/tuppers-formula/)。
+不同的K值可以画出不同的效果, 可以执行下python代码，也可以把K值复制到网站里面[keelyhill.github.io/tuppers-formula](https://keelyhill.github.io/tuppers-formula/)。
 
 ![](https://raw.githubusercontent.com/KenForever1/CDN/main/tutter_3.png)
 
@@ -67,6 +67,7 @@ scale = 5
 fname = "foo"
 image  = Image.new("RGB", (width, height),(255, 255, 255))
 
+# 这里提供的K值按照公式画出来是倒着的镜像图片，所以代码里面y = height-y-1上下翻转了一下
 for x in range (width):
     for y in range (height):
         if ((k+y)//17//2**(17*int(x)+int(y)%17))%2 > 0.5:
