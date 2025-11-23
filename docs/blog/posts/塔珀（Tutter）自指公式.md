@@ -12,6 +12,8 @@ comments: true
 
 今天，学习Tracy的时候介绍例程讲到了这个公式，当时很迷糊，觉得这个公式高深莫测。然后查阅资料学习了一下原理，分享记录一下。
 
+<!-- more -->
+
 ![](https://raw.githubusercontent.com/KenForever1/CDN/main/tutter-formula.png)
 
 图片上方就是塔珀（Tutter）自指公式，意思就是给他一个特定的数字K，然后通过这个公式计算x值和y值坐标点的值，可以得到17*106像素格子的黑白图片。（0表示白色，1表示黑色），可以画出这个公式。也就是图片下方的渲染图，是不是很神奇！！
