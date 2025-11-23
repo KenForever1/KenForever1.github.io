@@ -5,6 +5,7 @@ authors: [KenForever1]
 categories: 
   - 杂谈
 labels: []
+pin: true
 comments: true
 ---
 
