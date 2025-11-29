@@ -12,9 +12,95 @@ Tracy是最近了解到的一个性能分析工具，有一些特性值得关注
 
 在C++开发中，包括游戏领域一帧一帧分析、推理中每次推理耗时分析、多个线程中关联同一个Context等。目前还在学习中，先简单介绍一下基础使用。
 
+
+
+![](https://raw.githubusercontent.com/KenForever1/CDN/main/Tracy3.png)
+
 <!-- more -->
 
+Tracy的功能很强大，下面的功能它都能干！
+
+![](https://raw.githubusercontent.com/KenForever1/CDN/main/Tracy1.png)
+它的代码实现是Client和Server模式，TracyClient以代码的方式集成到了你的程序里面，即导入头文件，链接Tracy库，编译时使用TRACY_ENABLE激活。
+
+然后Server端，也就是Profiler GUI可以搜索连接client，因此你可以跨机器，比如在你的MAC或者windows上观察跑着linux上的程序的性能数据。
+
+GPU界面如图所示，Tracy工具作者对界面的响应进行了多个版本的优化，显示很流畅。
+
+![](https://raw.githubusercontent.com/KenForever1/CDN/main/Tracy2.png)
+
+Tracy采用手动代码插桩的方式，可以观察到每个函数的耗时，观察内存申请和释放等功能。
+
+![](https://raw.githubusercontent.com/KenForever1/CDN/main/Tracy4.png)
+
+![](https://raw.githubusercontent.com/KenForever1/CDN/main/Tracy5.png)
+
 ## Tracy集成使用例子
+
+
+```c++
+// main.cpp
+#include <thread>
+#include <unistd.h>
+
+#include "tracy/Tracy.hpp"
+#include "tracy/TracyC.h"
+
+#include <iostream>
+const char* fiber = "job1"; 
+TracyCZoneCtx zone;
+
+
+void Line(){
+    ZoneScopedN("Line"); // 作用域宏
+    for(int i = 0; i < 10; ++i){
+        sleep(1);
+        std::cout << "Line:"  << i << std::endl;
+        TracyPlot("line", (int64_t)i); // 绘制图
+    }
+}
+
+void Add(){
+    ZoneScopedN("Add");
+    sleep(1);
+    std::cout << "Add:" << std::endl;
+    Line();
+}
+
+void Sub(){
+    ZoneScopedN("Sub");
+    sleep(2);
+    void *p = malloc(1024);
+    TracyAllocN(p, 1024, "malloc_1024"); // profiler内存申请信息
+    sleep(1);
+    free(p);
+    TracyFreeN(p, "malloc_1024"); // profiler内存释放信息
+    std::cout << "Sub:" << std::endl;
+}
+
+
+int main()
+{
+    std::thread t1( [] {
+        TracyFiberEnter( fiber );
+        TracyCZone( ctx, 1 );
+        zone = ctx;
+        sleep( 1 );
+        Add();
+        TracyFiberLeave;
+    });
+    t1.join();
+
+    std::thread t2( [] {
+        TracyFiberEnter( fiber );
+        sleep( 1 );
+        Sub();
+        TracyCZoneEnd( zone );
+        TracyFiberLeave;
+    });
+    t2.join();
+}
+```
 
 CMake集成Tracy，使用CPM.cmake工具从github仓库中获取源码，并编译。
 
@@ -58,83 +144,22 @@ install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION ins)
 ```
 
-```c++
-// main.cpp
-#include <thread>
-#include <unistd.h>
+## Tracy相关资料
 
-#include "tracy/Tracy.hpp"
-#include "tracy/TracyC.h"
+1. Tracy 的CMake使用，可以参考作者vv工具的使用
 
-#include <iostream>
-const char* fiber = "job1";
-TracyCZoneCtx zone;
-
-
-void Line(){
-    ZoneScopedN("Line");
-    for(int i = 0; i < 10; ++i){
-        sleep(1);
-        std::cout << "Line:"  << i << std::endl;
-        TracyPlot("line", (int64_t)i);
-    }
-}
-
-void Add(){
-    ZoneScopedN("Add");
-    sleep(1);
-    std::cout << "Add:" << std::endl;
-    Line();
-}
-
-void Sub(){
-    ZoneScopedN("Sub");
-    sleep(2);
-    void *p = malloc(1024);
-    TracyAllocN(p, 1024, "malloc_1024");
-    sleep(1);
-    free(p);
-    TracyFreeN(p, "malloc_1024");
-    std::cout << "Sub:" << std::endl;
-}
-
-
-int main()
-{
-    std::thread t1( [] {
-        TracyFiberEnter( fiber );
-        TracyCZone( ctx, 1 );
-        zone = ctx;
-        sleep( 1 );
-        Add();
-        TracyFiberLeave;
-    });
-    t1.join();
-
-    std::thread t2( [] {
-        TracyFiberEnter( fiber );
-        sleep( 1 );
-        Sub();
-        TracyCZoneEnd( zone );
-        TracyFiberLeave;
-    });
-    t2.join();
-}
-```
-
-## 相关资料
-+ Tracy 的CMake使用，可以参考作者vv工具的使用
 [wolfpld/vv](https://github1s.com/wolfpld/vv/blob/master/CMakeLists.txt)
 
-+ Tracy C++2023会议PPT
+2. Tracy C++2023会议PPT
 
 讲解了如何CMake集成Tracy Client，如何编译Mac、linux、windows三端的Tracy Profiler可视化界面，以及如何使用Tracy Profiler进行性能分析。
-https://github.com/CppCon/CppCon2023/blob/main/Presentations/Tracy_Profiler_2024.pdf
 
-+ hdk项目中这个头文件对Tracy的宏定义进行了二次定义：
-https://www.sidefx.com/docs/hdk/_u_t___tracing_8h_source.html
+[/Tracy_Profiler_2024](https://github.com/CppCon/CppCon2023/blob/main/Presentations/Tracy_Profiler_2024.pdf)
 
-原始TracyAlloc等宏定义使用的x,y,z标记参数，看着很不清晰，这个头文件将参数改成了更清晰的ptr,size,name。
+3. hdk项目中这个头文件对Tracy的宏定义进行了二次定义：
+
+[hdk项目Tracy头文件](https://www.sidefx.com/docs/hdk/_u_t___tracing_8h_source.html), 原始TracyAlloc等宏定义使用的x,y,z标记参数，看着很不清晰，这个头文件将参数改成了更清晰的ptr,size,name。
+
 ```c++
 // Memory tracing.
   171 #define utTraceAlloc(ptr,size)              TracyAlloc(ptr,size)
@@ -148,3 +173,4 @@ https://www.sidefx.com/docs/hdk/_u_t___tracing_8h_source.html
   179 #define utTraceFreeNS(ptr,depth,name)       TracyFreeNS(ptr, depth, name)
   180 
 ```
+感谢您的阅读！！！
