@@ -20,7 +20,9 @@ comments: true
 ### 多线程
 
 首先采用了多线程的方式，
+
 所有计算都是针对单个像素的局部计算，不依赖于相邻像素，应该是极易并行化的。
+
 分别对每个处理步骤进行并行化处理，以遵循串行的操作方式。然后，经过一番分析，我意识到这种做法效率很低。我使用的测试图像大小为9504×6336×4通道×4字节，即918MB。因此，并行化的色彩管理函数需要加载这918MB的数据，进行处理，再将918MB的数据存储回内存。接着，并行化的转换函数又需要再次加载这918MB的数据，进行必要的计算，然后再次存储918MB的数据。后续的步骤也是如此。难怪分析结果显示，一半的执行时间都花在了内存指令上，因为所有数据都必须不断地通过内存进行传输。
 
 改进方法：
@@ -34,7 +36,9 @@ comments: true
 > Pq 实现的是 PQ (Perceptual Quantizer) 量化，这是 HDR (高动态范围) 图像处理中常用的非线性编码函数，用于将线性光信号转换为感知量化的非线性值。
 
 作者做了一些尝试：
+
 + [已有的SSE2实现](https://github.com/JishinMaster/simd_utils/blob/master/sse_mathfun.h)（能同时进行3次pow()计算）实际上比串行实现还要慢。
+
 + 用fma（融合乘加）指令替代一系列的mul + add指令，略微让SIMD占据了优势。将实现扩展到AVX2带来了预期的2倍速度提升，但AVX512版本却产生了失真。后来我发现，在阅读SIMD文档时，我不知怎么漏掉了正确的舍入选项，用了错误的那个，导致输出出现了NaN。但这也无关紧要了，我对那个版本的性能并不满意。
 
 然后，作者决定不再网上找代码了，“或许是时候停止尝试从网上随便找代码了，或许我真的应该弄明白这东西到底该怎么运行。”
@@ -45,9 +49,13 @@ comments: true
 
 1. 幂函数可以表示为exp()和log()函数的组合。
 
-$ x^y = e^{y \cdot \ln x} $ 或者 $ x^y = 2^{y \cdot \log_2 x} $
+$$ x^y = e^{y \cdot \ln x} $$ 
 
-下面对图像处理中浮点数计算的优化，采用$ x^y = 2^{y \cdot \log_2 x} $。不使用e的原因是减少不必要的数字来回转换。
+或者
+
+$$ x^y = 2^{y \cdot \log_2 x} $$
+
+下面对图像处理中浮点数计算的优化，采用 $$ x^y = 2^{y \cdot \log_2 x} $$ 。不使用e的原因是减少不必要的数字来回转换。
 
 2. IEEE 754浮点数的编码方式的构成：
 
@@ -57,7 +65,7 @@ $ x^y = e^{y \cdot \ln x} $ 或者 $ x^y = 2^{y \cdot \log_2 x} $
 
 + 23 bits mantissa, M. 23位尾数M。
 
-$ -1^S \cdot 1.M \cdot 2^{E - 127} $
+$$ -1^S \cdot 1.M \cdot 2^{E - 127} $$
 
 由于是图片处理，符号位与我们无关，颜色值永远不会是负数。
 
@@ -68,7 +76,7 @@ E−127只是为了解码该数字的二进制编码，我们会将其简化为E
 
 然后根据另一个数学知识：
 
-$ \log(a \cdot b) = \log a + \log b $
+$$ \log(a \cdot b) = \log a + \log b $$
 
 在图片处理的浮点数处理中，就可以做下面的转换：
 
@@ -120,7 +128,9 @@ void LinearizePq( float* ptr, int sz )
 ```
 
 ### simd实现
+
 这里只展示了__SSE4_1__的实现，256位和512位的操作可以查看源码。重点优化点是自定义实现了_mm_pow_ps函数。
+
 ```c++
 #if defined __SSE4_1__ && defined __FMA__
 void LinearizePq128( float* ptr, int sz )
@@ -154,7 +164,9 @@ void LinearizePq( float* ptr, int sz )
     LinearizePq128( ptr, sz );
 }
 ```
+
 实现了 SIMD 优化的数学函数，包括对数、指数和幂运算，用于替代标准数学库的函数以提高性能。
+
 ```c++ 
 #if defined __SSE4_1__ && defined __FMA__
 
@@ -165,8 +177,11 @@ static inline __m128 _mm_pow_ps( __m128 x, __m128 y )
 #endif
 
 ```
+
 ### SIMD 对数函数
+
 实现原理：使用自然对数的数学性质：log(x) = log(mantissa) + exponent, 将浮点数分解为尾数和指数部分。然后计算对数的多项式逼近。
+
 ```c++
 static inline __m128 _mm_log_ps( __m128 x )
 {
@@ -194,8 +209,11 @@ static inline __m128 _mm_log_ps( __m128 x )
     return r2;
 }
 ```
+
 ### SIMD 指数函数
+
 实现原理：利用指数性质：exp(x) = exp(integer_part) * exp(fractional_part), 使用多项式逼近计算 exp(fractional_part)。
+
 ```c++
 static inline __m128 _mm_exp_ps( __m128 x )
 {
@@ -220,7 +238,9 @@ static inline __m128 _mm_exp_ps( __m128 x )
 ```
 
 ### 多项式优化
+
 多项式优化通俗解释就是采用数学方法去在一定区域范围内，去逼近我们的exp函数、log函数。多项式计算更加简单。这个可以查看大学高等数学中学到的泰勒级数相关内容。
+
 上面的exp和log函数的多项式逼近中用到的很多奇特的数值，实际上是数学计算推出来的，是固定值，这里可以参考实现[OpenImageIO/fmath](https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/src/include/OpenImageIO/fmath.h)。
 
 ## simd调试方法
@@ -295,6 +315,7 @@ $1 = {8341503235886217471, 8629733612088195327}
   i64x2 = ([0] = 8341503235886217471, [1] = 8629733612088195327)
 }
 ```
+
 关于gdb pretty print之前也写过一篇文章：[GDB如何优化显示c++ STL数据结构的值](https://zhuanlan.zhihu.com/p/662099267)。、
 
 感谢您的阅读！！
