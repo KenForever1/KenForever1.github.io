@@ -12,11 +12,9 @@ Tracy是最近了解到的一个性能分析工具，有一些特性值得关注
 
 在C++开发中，包括游戏领域一帧一帧分析、推理中每次推理耗时分析、多个线程中关联同一个Context等。目前还在学习中，先简单介绍一下基础使用。
 
-
-
-![](https://raw.githubusercontent.com/KenForever1/CDN/main/Tracy3.png)
-
 <!-- more -->
+
+## Tracy介绍
 
 Tracy的功能很强大，下面的功能它都能干！
 
@@ -24,6 +22,8 @@ Tracy的功能很强大，下面的功能它都能干！
 它的代码实现是Client和Server模式，TracyClient以代码的方式集成到了你的程序里面，即导入头文件，链接Tracy库，编译时使用TRACY_ENABLE激活。
 
 然后Server端，也就是Profiler GUI可以搜索连接client，因此你可以跨机器，比如在你的MAC或者windows上观察跑着linux上的程序的性能数据。
+
+![](https://raw.githubusercontent.com/KenForever1/CDN/main/Tracy3.png)
 
 GPU界面如图所示，Tracy工具作者对界面的响应进行了多个版本的优化，显示很流畅。
 
