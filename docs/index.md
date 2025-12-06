@@ -21,7 +21,7 @@ comments: true
 
 对编程语言不讲究，常用C++、Rust、Python, 不同的语言有不同的语法糖，在不同的场景，可以一定程度提高效率，Golang、C#、Typescript、lua等也使用过一些。有些问题语言不是关键性问题，可以通过良好的数据结构和高效的系统调用，适合某个领域的系统设计等等解决。
 
-平时的话，锻炼身体很重要，可以使您的头脑更加活跃、思考速度更快，保持开心和激情。平时会去游泳、打打台球，户外活动。
+平时的话，锻炼身体很重要，可以使您的头脑更加活跃、思考速度更快，保持开心和激情。平时会去游泳、打打球，户外活动。
 
 ## 找到我
 <!-- Ken is Kenneth Lane Thompson, Dmr is Dennis MacAlistair Ritchie. Pay tribute to their work. -->
