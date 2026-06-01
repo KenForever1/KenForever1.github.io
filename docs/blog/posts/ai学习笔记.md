@@ -11,4 +11,7 @@ comments: true
 
 # 2026 AI的一些笔记
 
++ [FlashInfer GEMM 子系统](../html/flashinfer-gemm-learning-notes.html)
 + [dflash-gemma4-31b-notes](../html/dflash-gemma4-31b-notes.html)
++ [matrix-multiplication-optimization-notes](../html/matrix-multiplication-optimization-notes.html)
++ [matrix-multiplication-advanced-notes](../html/matrix-multiplication-advanced-notes.html)
