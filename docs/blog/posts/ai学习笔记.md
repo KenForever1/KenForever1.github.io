@@ -1,6 +1,6 @@
 ---
 title: AI的一些笔记
-date: 2026-01-01
+date: 2026-12-30
 authors: [KenForever1]
 categories: 
   - AI notes
@@ -15,3 +15,5 @@ comments: true
 + [dflash-gemma4-31b-notes](../html/dflash-gemma4-31b-notes.html)
 + [matrix-multiplication-optimization-notes](../html/matrix-multiplication-optimization-notes.html)
 + [matrix-multiplication-advanced-notes](../html/matrix-multiplication-advanced-notes.html)
++ [mamba-nemotron-deep-research](../html/mamba-nemotron-deep-research.html)
++ [epd-disaggregated-encoder-architecture](../html/epd-disaggregated-encoder-architecture.html)

@@ -1,0 +1,938 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mamba 与 Nemotron 深度调研</title>
+  <style>
+    :root {
+      --bg: #f7f9fb;
+      --panel: #ffffff;
+      --ink: #17202a;
+      --muted: #657282;
+      --line: #dbe3ea;
+      --blue: #246bfe;
+      --green: #0f8f73;
+      --amber: #b66a00;
+      --red: #c73a3a;
+      --navy: #1c3358;
+      --wash-blue: #edf4ff;
+      --wash-green: #e9f8f2;
+      --wash-amber: #fff5e6;
+      --wash-red: #fff0f0;
+      --code: #f1f5f9;
+      --shadow: 0 14px 35px rgba(23, 32, 42, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", sans-serif;
+      line-height: 1.65;
+    }
+
+    a {
+      color: var(--blue);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .shell {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px;
+    }
+
+    .hero {
+      min-height: 78vh;
+      display: grid;
+      grid-template-columns: minmax(0, 1.12fr) minmax(320px, 0.88fr);
+      gap: 32px;
+      align-items: center;
+      padding: 44px 0 28px;
+    }
+
+    .eyebrow {
+      color: var(--green);
+      font-size: 14px;
+      font-weight: 750;
+      letter-spacing: 0;
+      margin: 0 0 12px;
+    }
+
+    h1, h2, h3 {
+      line-height: 1.18;
+      letter-spacing: 0;
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(40px, 6vw, 72px);
+      max-width: 870px;
+    }
+
+    h2 {
+      font-size: 30px;
+      margin-bottom: 16px;
+    }
+
+    h3 {
+      font-size: 19px;
+      margin-bottom: 10px;
+    }
+
+    p {
+      margin: 0 0 14px;
+    }
+
+    .lead {
+      margin-top: 22px;
+      font-size: 19px;
+      color: #354253;
+      max-width: 790px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 32px;
+      padding: 5px 12px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 8px;
+      color: #3b4858;
+      font-size: 14px;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    .hero-visual {
+      background: linear-gradient(135deg, #ffffff 0%, #eef6f5 42%, #edf4ff 100%);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 22px;
+      box-shadow: var(--shadow);
+    }
+
+    .state-diagram {
+      display: grid;
+      gap: 12px;
+    }
+
+    .diagram-row {
+      display: grid;
+      grid-template-columns: 1fr 38px 1fr;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .node {
+      min-height: 74px;
+      border: 1px solid rgba(23, 32, 42, 0.1);
+      background: #fff;
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .node strong {
+      display: block;
+      font-size: 15px;
+      margin-bottom: 2px;
+    }
+
+    .node span {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .arrow {
+      height: 2px;
+      background: var(--blue);
+      position: relative;
+    }
+
+    .arrow:after {
+      content: "";
+      position: absolute;
+      right: -1px;
+      top: -5px;
+      border-left: 8px solid var(--blue);
+      border-top: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+    }
+
+    .section {
+      padding: 34px 0;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-end;
+      margin-bottom: 18px;
+    }
+
+    .section-head p {
+      max-width: 560px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .grid.cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid.cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .grid.cols-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      box-shadow: 0 1px 0 rgba(23, 32, 42, 0.02);
+    }
+
+    .card.compact {
+      padding: 15px;
+    }
+
+    .card h3 {
+      color: var(--navy);
+    }
+
+    .card p:last-child,
+    .card ul:last-child,
+    .card ol:last-child {
+      margin-bottom: 0;
+    }
+
+    .signal {
+      border-top: 4px solid var(--blue);
+    }
+
+    .signal.green {
+      border-top-color: var(--green);
+    }
+
+    .signal.amber {
+      border-top-color: var(--amber);
+    }
+
+    .signal.red {
+      border-top-color: var(--red);
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .mono,
+    code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      background: var(--code);
+      border-radius: 6px;
+      padding: 1px 5px;
+      font-size: 0.92em;
+    }
+
+    pre {
+      margin: 12px 0 0;
+      padding: 14px;
+      border-radius: 8px;
+      overflow: auto;
+      background: #0f172a;
+      color: #e2e8f0;
+      line-height: 1.5;
+      font-size: 13px;
+    }
+
+    pre code {
+      background: transparent;
+      padding: 0;
+      color: inherit;
+    }
+
+    ul, ol {
+      padding-left: 20px;
+      margin: 8px 0 14px;
+    }
+
+    li {
+      margin: 5px 0;
+    }
+
+    .flow {
+      display: grid;
+      gap: 10px;
+      counter-reset: flow;
+    }
+
+    .flow-step {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 12px;
+      align-items: start;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .flow-step:before {
+      counter-increment: flow;
+      content: counter(flow);
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: inline-grid;
+      place-items: center;
+      background: var(--navy);
+      color: white;
+      font-weight: 800;
+    }
+
+    .tabs {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .tab-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0;
+      border-bottom: 1px solid var(--line);
+      background: #f5f8fb;
+    }
+
+    .tab-button {
+      appearance: none;
+      border: 0;
+      border-right: 1px solid var(--line);
+      background: transparent;
+      color: #344054;
+      min-height: 44px;
+      padding: 10px 15px;
+      font: inherit;
+      font-weight: 750;
+      cursor: pointer;
+    }
+
+    .tab-button[aria-selected="true"] {
+      background: white;
+      color: var(--blue);
+      box-shadow: inset 0 -3px 0 var(--blue);
+    }
+
+    .tab-panel {
+      display: none;
+      padding: 18px;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      font-size: 14px;
+    }
+
+    th {
+      background: #f1f6fb;
+      color: var(--navy);
+      font-weight: 800;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 8px;
+      background: var(--wash-blue);
+      color: #174ea6;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .tag.green {
+      background: var(--wash-green);
+      color: #086a55;
+    }
+
+    .tag.amber {
+      background: var(--wash-amber);
+      color: #8a4a00;
+    }
+
+    .tag.red {
+      background: var(--wash-red);
+      color: #9e2626;
+    }
+
+    .callout {
+      border: 1px solid var(--line);
+      border-left: 5px solid var(--blue);
+      background: #fff;
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .callout.green {
+      border-left-color: var(--green);
+      background: var(--wash-green);
+    }
+
+    .callout.amber {
+      border-left-color: var(--amber);
+      background: var(--wash-amber);
+    }
+
+    .equation {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      color: #273449;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+
+    .timeline {
+      position: relative;
+      display: grid;
+      gap: 12px;
+    }
+
+    .timeline-item {
+      display: grid;
+      grid-template-columns: 126px 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .date {
+      color: var(--green);
+      font-weight: 850;
+      font-size: 14px;
+    }
+
+    .checklist {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .check {
+      display: grid;
+      grid-template-columns: 26px 1fr;
+      gap: 9px;
+      align-items: start;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .box {
+      width: 20px;
+      height: 20px;
+      margin-top: 3px;
+      border: 2px solid var(--green);
+      border-radius: 6px;
+      position: relative;
+    }
+
+    .box:after {
+      content: "";
+      position: absolute;
+      left: 4px;
+      top: 1px;
+      width: 7px;
+      height: 11px;
+      border: solid var(--green);
+      border-width: 0 2px 2px 0;
+      transform: rotate(42deg);
+    }
+
+    .source-list {
+      columns: 2;
+      column-gap: 28px;
+      font-size: 14px;
+    }
+
+    .source-list li {
+      break-inside: avoid;
+      margin-bottom: 8px;
+    }
+
+    @media (max-width: 900px) {
+      .shell {
+        padding: 20px;
+      }
+
+      .hero,
+      .grid.cols-2,
+      .grid.cols-3,
+      .grid.cols-4,
+      .checklist {
+        grid-template-columns: 1fr;
+      }
+
+      .section-head {
+        display: block;
+      }
+
+      .timeline-item {
+        grid-template-columns: 1fr;
+      }
+
+      .source-list {
+        columns: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Mamba / Mamba-2 / Nemotron-H / Nemotron 3 / TensorRT-Edge-LLM</p>
+        <h1>Mamba 与 Nemotron 系列模型深度调研</h1>
+        <p class="lead">
+          这份笔记把三件事连在一起：Mamba 如何用固定大小 recurrent state 替代长 KV cache，Nemotron 为什么从 dense Transformer 走向 hybrid Mamba-Transformer MoE，以及本地 TensorRT-Edge-LLM 如何把这种架构导出、编译、运行和维护状态。
+        </p>
+        <div class="meta-row">
+          <span class="pill">调研日期：2026-05-05</span>
+          <span class="pill">本地源码提交：f673b99</span>
+          <span class="pill">输出：开发与使用导向</span>
+        </div>
+      </div>
+      <div class="hero-visual" aria-label="Mamba 状态更新示意">
+        <div class="state-diagram">
+          <div class="diagram-row">
+            <div class="node"><strong>Transformer Attention</strong><span>历史 token 以 K/V 形式持续增长</span></div>
+            <div class="arrow"></div>
+            <div class="node"><strong>Decode 成本</strong><span>读历史 KV，显存和访存随上下文增长</span></div>
+          </div>
+          <div class="diagram-row">
+            <div class="node"><strong>Mamba / SSM</strong><span>历史压缩到 recurrent state + conv state</span></div>
+            <div class="arrow"></div>
+            <div class="node"><strong>Decode 成本</strong><span>每步更新固定大小状态</span></div>
+          </div>
+          <div class="diagram-row">
+            <div class="node"><strong>Nemotron Hybrid</strong><span>少量 Attention 保留检索能力，多数层换成 Mamba</span></div>
+            <div class="arrow"></div>
+            <div class="node"><strong>工程代价</strong><span>运行时必须同时管理 KV cache 与 SSM state</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="summary">
+      <div class="section-head">
+        <div>
+          <h2>核心结论</h2>
+          <p>先抓住这四个判断，后面的细节会自然落位。</p>
+        </div>
+      </div>
+      <div class="grid cols-4">
+        <article class="card signal">
+          <h3>Mamba 不是注意力优化</h3>
+          <p>它是 selective state space model：历史不以 KV 保存，而是通过状态递推被压缩到固定形状的 state。长上下文 decode 的吸引力来自这个状态规模不随 token 数线性增长。</p>
+        </article>
+        <article class="card signal green">
+          <h3>Mamba-2 让它更像系统组件</h3>
+          <p>Mamba-2 用 structured state space duality 把 SSM 与 attention 的矩阵结构联系起来，核心层相对 Mamba refined selective SSM 有 2-8 倍速度提升的官方论文表述。</p>
+        </article>
+        <article class="card signal amber">
+          <h3>Nemotron 的方向是 hybrid</h3>
+          <p>Nemotron-4 340B 仍是 dense Transformer；Nemotron-H 与 Nemotron 3 则明确转向 Mamba-Transformer，目标是在推理效率、长上下文和 reasoning 之间找平衡。</p>
+        </article>
+        <article class="card signal red">
+          <h3>落地难点在状态一致性</h3>
+          <p>工程实现不能只替换一个 layer。prefill、decode、batch compaction、system prompt cache、MTP/speculative decoding 都要让 KV cache 与 Mamba state 同步演进。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="mamba-architecture">
+      <div class="section-head">
+        <div>
+          <h2>Mamba 架构</h2>
+          <p>从使用者角度，它像一个序列 mixer；从推理系统角度，它是一组显式 state input/output。</p>
+        </div>
+      </div>
+      <div class="grid cols-2">
+        <article class="card">
+          <h3>1. Selective SSM 的直觉</h3>
+          <p>Mamba 的 SSM 状态可以理解成一个可学习的、按 token 更新的记忆槽。输入 token 经过投影产生 <code>x</code>、动态步长 <code>dt</code>，以及写入/读出系数 <code>B</code>、<code>C</code>。每个 token 都会更新状态，再从新状态读出输出。</p>
+          <div class="equation">new_state = state * exp(A * dt) + B * dt * x<br>output = sum(new_state * C) + D * x</div>
+          <p class="muted">本地 TensorRT plugin 的注释也采用这组公式。</p>
+        </article>
+        <article class="card">
+          <h3>2. Mamba block 的常见路径</h3>
+          <ol>
+            <li><code>in_proj</code> 将 hidden state 投影成 gate、conv path、dt。</li>
+            <li>causal conv1d 维护短程局部状态。</li>
+            <li>conv 输出切成 SSM 输入 <code>x</code>、<code>B</code>、<code>C</code>。</li>
+            <li>selective state update 更新 recurrent state。</li>
+            <li>gated RMSNorm 与 <code>out_proj</code> 回到 hidden size。</li>
+          </ol>
+          <p>这也是本地 <a href="https://github.com/KenForever1/TensorRT-Edge-LLM/blob/f673b99d9dd82fff42a6ada9bb4c2e2e3bbd2188/experimental/llm_loader/models/nemotron_h/modeling_nemotron_h.py#L245">Nemotron-H MambaMixer.forward</a> 的主线。</p>
+        </article>
+      </div>
+
+      <div class="tabs" data-tabs="mamba-tabs">
+        <div class="tab-list" role="tablist" aria-label="Mamba 视角">
+          <button class="tab-button" type="button" role="tab" aria-selected="true" aria-controls="tab-arch" id="tab-arch-button">架构视角</button>
+          <button class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tab-kernel" id="tab-kernel-button">Kernel 视角</button>
+          <button class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tab-usage" id="tab-usage-button">使用视角</button>
+        </div>
+        <div class="tab-panel active" role="tabpanel" id="tab-arch" aria-labelledby="tab-arch-button">
+          <p>Mamba 的关键不是“没有 attention 就更快”这么简单，而是把内容相关的选择性引入 SSM：每个 token 可以动态调节如何写入状态、如何从状态读出。Mamba-2 进一步把 SSM 与 attention 放到 structured semiseparable matrix 框架下理解，给了更清晰的并行 scan 和 kernel 优化空间。</p>
+        </div>
+        <div class="tab-panel" role="tabpanel" id="tab-kernel" aria-labelledby="tab-kernel-button">
+          <p>decode 阶段天然是一 token 一步，single-step state update 很合适；prefill 阶段则要对长 prompt 做 scan，如果只在 plugin 内部按 token loop，就正确但慢。本地实现默认可走 step loop，并预留 CuTe DSL chunked SSD 路径给长 prefill。</p>
+        </div>
+        <div class="tab-panel" role="tabpanel" id="tab-usage" aria-labelledby="tab-usage-button">
+          <p>官方 <code>state-spaces/mamba</code> 包提供 <code>Mamba</code>、<code>Mamba2</code>、<code>Mamba3</code> 模块，也建议安装 <code>causal-conv1d</code> 加速 causal conv。业务使用通常不会直接手写 selective scan，而是通过 Hugging Face model 或推理框架加载具体 checkpoint。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="nemotron">
+      <div class="section-head">
+        <div>
+          <h2>Nemotron 系列</h2>
+          <p>Nemotron 不是单一模型，而是 NVIDIA 从数据、训练、后训练、推理部署一起推进的模型族。</p>
+        </div>
+      </div>
+      <div class="timeline">
+        <div class="timeline-item card">
+          <div class="date">2024-06</div>
+          <div>
+            <h3>Nemotron-4 340B</h3>
+            <p>以生成合成数据和 reward model 为重要定位的开放模型族，架构上仍是大规模 dense Transformer。它是后续 Nemotron 数据与 alignment 流水线的重要前史。</p>
+          </div>
+        </div>
+        <div class="timeline-item card">
+          <div class="date">2025</div>
+          <div>
+            <h3>Nemotron-H</h3>
+            <p>NVIDIA Research 介绍的 hybrid Mamba-Transformer 系列，包含 8B、47B、56B 等版本。56B-Base 使用 54 个 Mamba-2 层、54 个 MLP 层和 10 个 self-attention 层；8B-Base 使用 24 个 Mamba-2、24 个 MLP 和 4 个 attention 层。</p>
+          </div>
+        </div>
+        <div class="timeline-item card">
+          <div class="date">2026-03</div>
+          <div>
+            <h3>Nemotron-Nano-9B-v2</h3>
+            <p>NVIDIA arXiv 报告把它定位为 compute-efficient reasoning 模型，延续 Mamba-Transformer hybrid 路线，强调 reasoning、工具调用和长上下文等后训练能力。</p>
+          </div>
+        </div>
+        <div class="timeline-item card">
+          <div class="date">2026-06</div>
+          <div>
+            <h3>Nemotron 3 Super / Ultra</h3>
+            <p>Nemotron 3 Ultra 模型卡写明 550B 总参数、55B active、Mamba-2 + MoE + Attention hybrid LatentMoE、MTP、最高 1M token context。Super 则是更小 active footprint 的 hybrid Mamba-Transformer MoE，用于 agentic reasoning。</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <table>
+          <thead>
+            <tr>
+              <th>模型线</th>
+              <th>架构关键词</th>
+              <th>开发重点</th>
+              <th>使用重点</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="tag">Nemotron-4 340B</span></td>
+              <td>Dense Transformer</td>
+              <td>合成数据、reward model、alignment 数据生产</td>
+              <td>更像数据/评测/对齐基础设施，不是 Mamba 学习的主样本</td>
+            </tr>
+            <tr>
+              <td><span class="tag green">Nemotron-H</span></td>
+              <td>Mamba-2 + MLP + 少量 Attention</td>
+              <td>减少 self-attention 层以改善长上下文推理效率；FP8 预训练；47B 蒸馏压缩</td>
+              <td>适合理解 hybrid state 管理，也是 TensorRT-Edge-LLM 本地实现最贴近的模型族</td>
+            </tr>
+            <tr>
+              <td><span class="tag amber">Nemotron Nano v2</span></td>
+              <td>Hybrid Mamba-Transformer reasoning model</td>
+              <td>小体量 reasoning 与工具使用能力</td>
+              <td>更适合单机或较低成本实验，注意自定义 chat template 与 thinking 开关</td>
+            </tr>
+            <tr>
+              <td><span class="tag red">Nemotron 3 Ultra</span></td>
+              <td>LatentMoE: Mamba-2 + MoE + Attention + MTP</td>
+              <td>550B/55B active、NVFP4 训练、1M context、agentic reasoning</td>
+              <td>主要面向多节点 vLLM/SGLang/TensorRT-LLM；长上下文要显式配置 max model length</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section" id="local-implementation">
+      <div class="section-head">
+        <div>
+          <h2>TensorRT-Edge-LLM 实现链路</h2>
+          <p>你给的 deep dive 与源码相互印证：这里的 Mamba 不是一个独立模型类型，而是 hybrid decoder 中的一类 stateful layer。</p>
+        </div>
+      </div>
+      <div class="flow">
+        <div class="flow-step">
+          <div>
+            <h3>Config 解析 hybrid layer</h3>
+            <p><a href="https://github.com/KenForever1/TensorRT-Edge-LLM/blob/f673b99d9dd82fff42a6ada9bb4c2e2e3bbd2188/experimental/llm_loader/config.py#L613">_parse_layer_types</a> 读取 <code>layers_block_type</code>、<code>layer_types</code> 或 <code>hybrid_override_pattern</code>，把 attention、mamba、mlp、moe 等类型规范化。<a href="https://github.com/KenForever1/TensorRT-Edge-LLM/blob/f673b99d9dd82fff42a6ada9bb4c2e2e3bbd2188/experimental/llm_loader/config.py#L653">_parse_mamba_cfg</a> 解析 <code>num_heads</code>、<code>head_dim</code>、<code>ssm_state_size</code>、<code>conv_dim</code>、<code>conv_kernel</code>、<code>n_groups</code>。</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div>
+            <h3>Python 模型保留 Mamba2 结构</h3>
+            <p><a href="https://github.com/KenForever1/TensorRT-Edge-LLM/blob/f673b99d9dd82fff42a6ada9bb4c2e2e3bbd2188/experimental/llm_loader/models/nemotron_h/modeling_nemotron_h.py#L186">MambaMixer</a> 中 <code>in_proj</code> 输出 gate、conv path、dt；<code>causal_conv1d</code> 维护 conv state；<code>update_ssm_state</code> 更新 recurrent SSM state；最后 gated RMSNorm 和 <code>out_proj</code> 回到 hidden size。</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div>
+            <h3>ONNX custom op 穿过 dynamo export</h3>
+            <p><a href="https://github.com/KenForever1/TensorRT-Edge-LLM/blob/f673b99d9dd82fff42a6ada9bb4c2e2e3bbd2188/experimental/llm_loader/models/ops.py#L426">causal_conv1d</a> 和 <a href="https://github.com/KenForever1/TensorRT-Edge-LLM/blob/f673b99d9dd82fff42a6ada9bb4c2e2e3bbd2188/experimental/llm_loader/models/ops.py#L482">update_ssm_state</a> 是 trace-time stub，返回形状正确的 dummy tensor。<a href="https://github.com/KenForever1/TensorRT-Edge-LLM/blob/f673b99d9dd82fff42a6ada9bb4c2e2e3bbd2188/experimental/llm_loader/onnx/dynamo_translations.py#L477">dynamo translation</a> 再把它们变成 <code>trt_edgellm</code> ONNX domain 的 custom op。</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div>
+            <h3>TensorRT Plugin 做 selective state update</h3>
+            <p><a href="https://github.com/KenForever1/TensorRT-Edge-LLM/blob/f673b99d9dd82fff42a6ada9bb4c2e2e3bbd2188/cpp/plugins/mamba/mambaPlugin.h#L30">MambaPlugin</a> 注册为 <code>update_ssm_state</code>，输入包含 <code>x, A, B, C, D, dt, dt_bias, state, context_lengths</code>，输出 <code>output</code> 与 <code>state_out</code>。<a href="https://github.com/KenForever1/TensorRT-Edge-LLM/blob/f673b99d9dd82fff42a6ada9bb4c2e2e3bbd2188/cpp/plugins/mamba/mambaPlugin.cpp#L240">enqueue</a> 会把 input state 拷到 output state，再原地更新。</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div>
+            <h3>Runtime 统一管理 KV 与 Mamba state</h3>
+            <p><a href="https://github.com/KenForever1/TensorRT-Edge-LLM/blob/f673b99d9dd82fff42a6ada9bb4c2e2e3bbd2188/cpp/runtime/mambaCacheManager.h#L29">MambaCacheManager</a> 每个 recurrent layer 持有 recurrent state 与 conv state。<a href="https://github.com/KenForever1/TensorRT-Edge-LLM/blob/f673b99d9dd82fff42a6ada9bb4c2e2e3bbd2188/cpp/runtime/hybridCacheManager.h#L31">HybridCacheManager</a> 根据 layer type 路由到 KVCacheManager 或 MambaCacheManager。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="state-contract">
+      <div class="section-head">
+        <div>
+          <h2>状态契约</h2>
+          <p>理解开发和使用的关键，是把所有跨 token 状态显式化。</p>
+        </div>
+      </div>
+      <div class="grid cols-3">
+        <article class="card">
+          <h3>Attention state</h3>
+          <p><code>KV cache</code> 随上下文长度增长。它保留历史 token 的 key/value，decode 时当前 token attend 到历史。</p>
+        </article>
+        <article class="card">
+          <h3>Mamba recurrent state</h3>
+          <p>形状为 <code>[batch, num_heads, head_dim, state_size]</code>，保存 SSM 的长期递推状态。</p>
+        </article>
+        <article class="card">
+          <h3>Mamba conv state</h3>
+          <p>形状为 <code>[batch, conv_dim, conv_kernel]</code>，保存 causal conv1d 的短程窗口状态。</p>
+        </article>
+      </div>
+
+      <div class="grid cols-2">
+        <article class="callout green">
+          <h3>prefill 与 decode</h3>
+          <p>prefill 输入通常包含 <code>seq_len</code> 维度，需要用 <code>context_lengths</code> 避免 padding 污染状态。decode 通常 <code>seq_len=1</code>，此时不应把 cumulative context length 当成 scan 长度。</p>
+        </article>
+        <article class="callout amber">
+          <h3>MTP / speculative decoding</h3>
+          <p>候选 token 会产生中间 Mamba state。最终接受多少 token 由 <code>acceptLengths</code> 决定，运行时必须把对应 intermediate recurrent/conv state scatter 回主状态，否则后续 decode 历史会错位。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="develop-use">
+      <div class="section-head">
+        <div>
+          <h2>开发与使用路线</h2>
+          <p>把“研究模型”和“跑起来”拆成四层，会少踩很多坑。</p>
+        </div>
+      </div>
+      <div class="grid cols-2">
+        <article class="card">
+          <h3>开发一个 hybrid Mamba 模型适配</h3>
+          <ol>
+            <li>先把 HF config 中的 <code>layers_block_type</code>、Mamba 维度和 MoE/MLP 层类型解析成内部统一 config。</li>
+            <li>在 Python 模型中保持清晰的 block 结构，不要一开始就塞成单个黑盒 plugin。</li>
+            <li>对 ONNX 不友好的 kernel 用 custom op stub 加 translation。</li>
+            <li>在 TensorRT plugin 中实现真正 kernel，并严格固定输入输出 dtype 与 shape 约定。</li>
+            <li>运行时显式绑定 past/present state，保证 state 生命周期由 cache manager 控制。</li>
+          </ol>
+        </article>
+        <article class="card">
+          <h3>使用 Nemotron 模型</h3>
+          <ol>
+            <li>小规模理解和实验：先看 Nemotron-H-8B 或 Nemotron-Nano，而不是直接上 Ultra。</li>
+            <li>服务推理：优先按模型卡选择 vLLM、SGLang 或 TensorRT-LLM，并确认该框架支持相应 custom architecture。</li>
+            <li>长上下文：不要只看模型号，要显式设置 <code>max_model_len</code>、context length 环境变量和显存预算。</li>
+            <li>reasoning/tool use：按 chat template 传入 thinking 或 tool-call 相关开关，Ultra 模型卡特别提醒 tool calls 与 reasoning parsing 的参数。</li>
+            <li>低精度：区分 BF16、FP8、NVFP4、FP4。低精度不仅是权重量化，还影响 kernel、state dtype 与服务框架兼容性。</li>
+          </ol>
+        </article>
+      </div>
+
+      <div class="card">
+        <h3>最小概念代码：Mamba-2 block 试用</h3>
+        <pre><code>pip install causal-conv1d&gt;=1.4.0 --no-build-isolation
+pip install mamba-ssm[causal-conv1d] --no-build-isolation
+
+from mamba_ssm import Mamba2
+
+model = Mamba2(
+    d_model=2560,
+    d_state=64,
+    d_conv=4,
+    expand=2,
+    headdim=128,
+).cuda()
+
+y = model(x)  # x: [batch, seq_len, d_model]</code></pre>
+        <p class="muted">这段用于理解 block 接口。Nemotron-H / Nemotron 3 实际使用还依赖 NVIDIA 发布的模型代码、chat template 和推理框架支持。</p>
+      </div>
+    </section>
+
+    <section class="section" id="pitfalls">
+      <div class="section-head">
+        <div>
+          <h2>容易混淆点</h2>
+          <p>这些点是读论文、读模型卡和读 TensorRT-Edge-LLM 源码时最容易错位的地方。</p>
+        </div>
+      </div>
+      <div class="grid cols-2">
+        <article class="card">
+          <h3>“Mamba 层”不等于“没有状态”</h3>
+          <p>它没有 KV cache，但有 recurrent state 与 conv state。batch eviction、prompt cache 和 speculative accept/reject 仍然要维护状态，只是状态形状不同。</p>
+        </article>
+        <article class="card">
+          <h3>hybrid layer 数不等于 decoder layer 总数</h3>
+          <p>Nemotron-H 中 MLP/MoE 层可能不携带跨 token cache。本地 runtime config 会跳过非 stateful 层，只把 attention 和 mamba 写入 <code>layer_types</code>。</p>
+        </article>
+        <article class="card">
+          <h3>长上下文收益主要在 decode</h3>
+          <p>Mamba 的固定状态减少 decode 的历史读写压力；prefill 仍要处理整段 prompt，没有并行 scan 优化时可能成为瓶颈。</p>
+        </article>
+        <article class="card">
+          <h3>Nemotron 不是全都 Mamba</h3>
+          <p>Nemotron-4 是 dense Transformer；Nemotron-H 和 Nemotron 3 才是这里关注的 hybrid Mamba-Transformer 主线。Nemotron 3 Ultra 还加入 LatentMoE 与 MTP。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="reading-order">
+      <div class="section-head">
+        <div>
+          <h2>源码阅读顺序</h2>
+          <p>按这个顺序读，会从模型语义一路读到运行时状态绑定。</p>
+        </div>
+      </div>
+      <div class="checklist">
+        <div class="check"><span class="box"></span><div><strong>配置解析</strong><br><a href="https://github.com/KenForever1/TensorRT-Edge-LLM/blob/f673b99d9dd82fff42a6ada9bb4c2e2e3bbd2188/experimental/llm_loader/config.py#L171">MambaConfig</a> 与 <a href="https://github.com/KenForever1/TensorRT-Edge-LLM/blob/f673b99d9dd82fff42a6ada9bb4c2e2e3bbd2188/experimental/llm_loader/config.py#L613">layer type 解析</a>。</div></div>
+        <div class="check"><span class="box"></span><div><strong>模型结构</strong><br><a href="https://github.com/KenForever1/TensorRT-Edge-LLM/blob/f673b99d9dd82fff42a6ada9bb4c2e2e3bbd2188/experimental/llm_loader/models/nemotron_h/modeling_nemotron_h.py#L186">MambaMixer</a> 与 Nemotron-H block forward。</div></div>
+        <div class="check"><span class="box"></span><div><strong>导出边界</strong><br><a href="https://github.com/KenForever1/TensorRT-Edge-LLM/blob/f673b99d9dd82fff42a6ada9bb4c2e2e3bbd2188/experimental/llm_loader/models/ops.py#L422">custom op stub</a> 与 <a href="https://github.com/KenForever1/TensorRT-Edge-LLM/blob/f673b99d9dd82fff42a6ada9bb4c2e2e3bbd2188/experimental/llm_loader/onnx/dynamo_translations.py#L313">ONNX translation</a>。</div></div>
+        <div class="check"><span class="box"></span><div><strong>dtype 修正</strong><br><a href="https://github.com/KenForever1/TensorRT-Edge-LLM/blob/f673b99d9dd82fff42a6ada9bb4c2e2e3bbd2188/experimental/llm_loader/onnx/export.py#L389">initializer fixup</a> 中保留 <code>update_ssm_state</code> 的 <code>A</code> 为 FP32。</div></div>
+        <div class="check"><span class="box"></span><div><strong>TensorRT plugin</strong><br><a href="https://github.com/KenForever1/TensorRT-Edge-LLM/blob/f673b99d9dd82fff42a6ada9bb4c2e2e3bbd2188/cpp/plugins/mamba/mambaPlugin.h#L30">MambaPlugin 接口</a> 与 <a href="https://github.com/KenForever1/TensorRT-Edge-LLM/blob/f673b99d9dd82fff42a6ada9bb4c2e2e3bbd2188/cpp/plugins/mamba/mambaPlugin.cpp#L240">enqueue</a>。</div></div>
+        <div class="check"><span class="box"></span><div><strong>运行时状态</strong><br><a href="https://github.com/KenForever1/TensorRT-Edge-LLM/blob/f673b99d9dd82fff42a6ada9bb4c2e2e3bbd2188/cpp/runtime/mambaCacheManager.h#L29">MambaCacheManager</a> 与 <a href="https://github.com/KenForever1/TensorRT-Edge-LLM/blob/f673b99d9dd82fff42a6ada9bb4c2e2e3bbd2188/cpp/runtime/hybridCacheManager.h#L31">HybridCacheManager</a>。</div></div>
+        <div class="check"><span class="box"></span><div><strong>engine 绑定</strong><br><a href="https://github.com/KenForever1/TensorRT-Edge-LLM/blob/f673b99d9dd82fff42a6ada9bb4c2e2e3bbd2188/cpp/runtime/llmEngineRunner.cpp#L1010">recurrent state binding</a> 与 <a href="https://github.com/KenForever1/TensorRT-Edge-LLM/blob/f673b99d9dd82fff42a6ada9bb4c2e2e3bbd2188/cpp/runtime/llmEngineRunner.cpp#L1034">conv state binding</a>。</div></div>
+        <div class="check"><span class="box"></span><div><strong>runtime config</strong><br><a href="https://github.com/KenForever1/TensorRT-Edge-LLM/blob/f673b99d9dd82fff42a6ada9bb4c2e2e3bbd2188/experimental/llm_loader/checkpoint/checkpoint_utils.py#L259">build_runtime_llm_config_dict</a> 与 C++ <a href="https://github.com/KenForever1/TensorRT-Edge-LLM/blob/f673b99d9dd82fff42a6ada9bb4c2e2e3bbd2188/cpp/runtime/llmEngineRunner.cpp#L655">config 解析</a>。</div></div>
+      </div>
+    </section>
+
+    <section class="section" id="references">
+      <div class="section-head">
+        <div>
+          <h2>参考资料</h2>
+          <p>优先使用论文、官方仓库、NVIDIA 官方资料和模型卡。</p>
+        </div>
+      </div>
+      <ol class="source-list">
+        <li><a href="https://arxiv.org/abs/2312.00752">Mamba: Linear-Time Sequence Modeling with Selective State Spaces</a></li>
+        <li><a href="https://arxiv.org/abs/2405.21060">Transformers are SSMs: Structured State Space Duality / Mamba-2</a></li>
+        <li><a href="https://github.com/state-spaces/mamba">state-spaces/mamba 官方仓库</a></li>
+        <li><a href="https://research.nvidia.com/labs/adlr/nemotronh/">NVIDIA Research: Nemotron-H</a></li>
+        <li><a href="https://arxiv.org/abs/2406.11704">Nemotron-4 340B Technical Report</a></li>
+        <li><a href="https://arxiv.org/abs/2504.03624">NVIDIA-Nemotron-Nano-9B-v2 Technical Report</a></li>
+        <li><a href="https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16">NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16 模型卡</a></li>
+        <li><a href="https://developer.nvidia.com/blog/introducing-nemotron-3-super-an-open-hybrid-mamba-transformer-moe-for-agentic-reasoning/">NVIDIA Developer: Nemotron 3 Super</a></li>
+        <li><a href="https://docs.nvidia.com/nemotron/nightly/usage-cookbook/Nemotron-3-Ultra-Base/README.html">NVIDIA Nemotron Usage Cookbook: Nemotron 3 Ultra</a></li>
+      </ol>
+    </section>
+  </main>
+
+  <script>
+    const groups = document.querySelectorAll("[data-tabs]");
+    groups.forEach((group) => {
+      const buttons = Array.from(group.querySelectorAll("[role='tab']"));
+      const panels = Array.from(group.querySelectorAll("[role='tabpanel']"));
+      buttons.forEach((button) => {
+        button.addEventListener("click", () => {
+          buttons.forEach((item) => item.setAttribute("aria-selected", String(item === button)));
+          panels.forEach((panel) => panel.classList.toggle("active", panel.id === button.getAttribute("aria-controls")));
+        });
+      });
+    });
+  </script>
+</body>
+</html>

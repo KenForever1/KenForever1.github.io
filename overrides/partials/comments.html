@@ -1,5 +1,7 @@
 {% if page.meta.comments %}
-  <link rel="stylesheet" type="text/css" href="../../stylesheets/auto-number-title.css" />
+  {% if page.meta.auto_number_title is not sameas false %}
+    <link rel="stylesheet" type="text/css" href="../../stylesheets/auto-number-title.css" />
+  {% endif %}
   <h1 id="__comments">{{ lang.t("meta.comments") }}</h1>
   <!-- Insert generated snippet here -->
   <script src="https://giscus.app/client.js"

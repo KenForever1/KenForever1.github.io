@@ -1,0 +1,1014 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>vLLM EPD / Disaggregated Encoder 架构学习页</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17202a;
+      --muted: #5e6977;
+      --subtle: #edf1f5;
+      --panel: #ffffff;
+      --panel-2: #f8fafc;
+      --line: #d8e0e8;
+      --blue: #1f6feb;
+      --cyan: #0f8b8d;
+      --green: #168a45;
+      --amber: #b7791f;
+      --red: #b42318;
+      --violet: #725ac1;
+      --shadow: 0 18px 55px rgba(30, 42, 56, 0.10);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        linear-gradient(180deg, #f7fbff 0%, #ffffff 340px),
+        #ffffff;
+      letter-spacing: 0;
+    }
+
+    a {
+      color: var(--blue);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid rgba(216, 224, 232, 0.9);
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px);
+    }
+
+    .nav-inner {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 220px;
+      font-weight: 760;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 6px;
+      background: #0f8b8d;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .nav-links a {
+      color: #354052;
+      padding: 6px 8px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .nav-links a:hover {
+      background: var(--subtle);
+      text-decoration: none;
+    }
+
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 36px 24px 64px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+      gap: 28px;
+      align-items: stretch;
+      padding: 30px 0 22px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--cyan);
+      font-weight: 760;
+      font-size: 13px;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 12px 0 14px;
+      font-size: clamp(34px, 5vw, 58px);
+      line-height: 1.04;
+      letter-spacing: 0;
+      max-width: 900px;
+    }
+
+    .lead {
+      font-size: 18px;
+      line-height: 1.75;
+      color: #3f4c5c;
+      max-width: 850px;
+    }
+
+    .hero-meta {
+      margin-top: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 7px 10px;
+      background: #fff;
+      color: #354052;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .hero-card {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+      display: grid;
+      align-content: center;
+      gap: 14px;
+    }
+
+    .mini-flow {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .mini-node {
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--cyan);
+      background: var(--panel-2);
+      border-radius: 7px;
+      padding: 12px;
+      min-height: 74px;
+    }
+
+    .mini-node strong {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 5px;
+    }
+
+    .mini-node span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .arrow {
+      color: var(--muted);
+      font-weight: 800;
+      font-size: 18px;
+    }
+
+    section {
+      margin-top: 34px;
+      padding-top: 10px;
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: 28px;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
+    p {
+      line-height: 1.72;
+      color: #3f4c5c;
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .cards-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .cards-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: var(--radius);
+      padding: 18px;
+      min-height: 150px;
+    }
+
+    .card .tag {
+      display: inline-block;
+      margin-bottom: 11px;
+      color: #fff;
+      background: var(--blue);
+      border-radius: 5px;
+      padding: 4px 7px;
+      font-size: 12px;
+      font-weight: 760;
+    }
+
+    .card:nth-child(2) .tag { background: var(--cyan); }
+    .card:nth-child(3) .tag { background: var(--green); }
+    .card:nth-child(4) .tag { background: var(--amber); }
+
+    .card p,
+    .card li {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .diagram {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 22px;
+      overflow: auto;
+    }
+
+    .topology {
+      min-width: 900px;
+      display: grid;
+      grid-template-columns: 1fr 1.1fr 1.05fr 0.95fr 1.05fr;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .lane {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-2);
+      padding: 14px;
+      min-height: 150px;
+    }
+
+    .lane h3 {
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+
+    .lane ul {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .lane.client { border-top: 4px solid var(--blue); }
+    .lane.proxy { border-top: 4px solid var(--violet); }
+    .lane.encoder { border-top: 4px solid var(--cyan); }
+    .lane.ec { border-top: 4px solid var(--amber); }
+    .lane.pd { border-top: 4px solid var(--green); }
+
+    .flow-arrow {
+      text-align: center;
+      color: #667085;
+      font-weight: 800;
+      font-size: 22px;
+      margin: 8px 0;
+    }
+
+    .sequence {
+      display: grid;
+      grid-template-columns: 44px minmax(0, 1fr);
+      gap: 12px;
+      max-width: 980px;
+    }
+
+    .step-number {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #e6f4f1;
+      color: var(--cyan);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+    }
+
+    .step {
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 13px;
+    }
+
+    .step:last-child {
+      border-bottom: 0;
+    }
+
+    .step strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .step span {
+      color: var(--muted);
+      line-height: 1.62;
+      font-size: 14px;
+    }
+
+    .tabs {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .tab-bar {
+      display: flex;
+      gap: 0;
+      background: var(--panel-2);
+      border-bottom: 1px solid var(--line);
+      overflow-x: auto;
+    }
+
+    .tab {
+      appearance: none;
+      border: 0;
+      border-right: 1px solid var(--line);
+      background: transparent;
+      padding: 13px 16px;
+      min-width: 150px;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      color: #4b5565;
+      cursor: pointer;
+    }
+
+    .tab.active {
+      background: #fff;
+      color: var(--blue);
+      box-shadow: inset 0 -3px 0 var(--blue);
+    }
+
+    .tab-panel {
+      display: none;
+      padding: 20px;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 16px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--line);
+      padding: 12px;
+      vertical-align: top;
+      text-align: left;
+    }
+
+    th {
+      background: #f3f6fa;
+      color: #344054;
+      font-weight: 760;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      background: #eef3f8;
+      border: 1px solid #dbe4ef;
+      border-radius: 5px;
+      padding: 2px 5px;
+      color: #243447;
+      font-size: 0.92em;
+    }
+
+    pre {
+      margin: 0;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #0f172a;
+      color: #dbeafe;
+      overflow: auto;
+      line-height: 1.55;
+      font-size: 13px;
+    }
+
+    pre code {
+      background: transparent;
+      border: 0;
+      color: inherit;
+      padding: 0;
+    }
+
+    .callout {
+      border-left: 4px solid var(--amber);
+      background: #fff8e7;
+      border-radius: 0 8px 8px 0;
+      padding: 14px 16px;
+      color: #594214;
+      line-height: 1.68;
+    }
+
+    .callout.info {
+      border-left-color: var(--blue);
+      background: #eef6ff;
+      color: #253858;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 760;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    .dot.open {
+      background: var(--amber);
+    }
+
+    .source-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .source-item {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      background: #fff;
+    }
+
+    .source-item strong {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .source-item span {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .footer {
+      margin-top: 42px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 900px) {
+      .hero,
+      .two-col,
+      .cards-4,
+      .cards-3,
+      .source-list {
+        grid-template-columns: 1fr;
+      }
+
+      .nav-inner {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .nav-links {
+        justify-content: flex-start;
+      }
+
+      main {
+        padding: 24px 16px 48px;
+      }
+
+      h1 {
+        font-size: 36px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <div class="brand"><span class="brand-mark">EC</span><span>vLLM EPD 架构笔记</span></div>
+      <div class="nav-links">
+        <a href="#overview">总览</a>
+        <a href="#topology">拓扑</a>
+        <a href="#flow">请求流</a>
+        <a href="#modules">模块</a>
+        <a href="#tabs">实现分支</a>
+        <a href="#limits">边界</a>
+        <a href="#sources">源码索引</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <header class="hero" id="overview">
+      <div>
+        <div class="eyebrow">Source-backed architecture guide</div>
+        <h1>EPD / Disaggregated Encoder：把多模态 Encoder 从 Prefill/Decode 中拆出来</h1>
+        <p class="lead">
+          vLLM 的 EPD 路径把视觉/音频 encoder 输出变成可跨进程复用的 Encoder Cache（EC）。
+          Encoder 实例只负责生产 EC，PD 或 P/D 实例按 <code>mm_hash</code> 命中并加载 EC，然后继续语言模型 prefill/decode。
+          当前代码主干来自 <a href="https://github.com/vllm-project/vllm/pull/25233">vllm#25233</a>；
+          <a href="https://github.com/vllm-project/vllm/pull/44049">vllm#44049</a> 是后续共享内存和资源回收增强，尚未出现在本次源码快照里。
+        </p>
+        <div class="hero-meta">
+          <span class="pill">Repo: vllm-project/vllm</span>
+          <span class="pill">Commit: ad7125a</span>
+          <span class="pill">V1 runner only</span>
+          <span class="pill">当前 connector: ECExampleConnector</span>
+        </div>
+      </div>
+      <aside class="hero-card" aria-label="Mini architecture summary">
+        <div class="mini-flow">
+          <div class="mini-node">
+            <strong>Encoder</strong>
+            <span><code>ec_producer</code><br>执行 MM encoder，保存 EC。</span>
+          </div>
+          <div class="arrow">→</div>
+          <div class="mini-node">
+            <strong>EC Connector</strong>
+            <span><code>mm_hash</code> 索引<br>当前为 safetensors 落盘。</span>
+          </div>
+        </div>
+        <div class="mini-flow">
+          <div class="mini-node">
+            <strong>PD / P</strong>
+            <span><code>ec_consumer</code><br>调度外部加载，不重算 encoder。</span>
+          </div>
+          <div class="arrow">→</div>
+          <div class="mini-node">
+            <strong>Decode</strong>
+            <span>单 PD 直接 decode；P/D 分离则通过 KV connector。</span>
+          </div>
+        </div>
+      </aside>
+    </header>
+
+    <section>
+      <div class="grid cards-4">
+        <article class="card">
+          <span class="tag">分离</span>
+          <h3>Encoder-only 实例</h3>
+          <p>生产者实例只跑 multimodal encoder，不初始化语言模型 KV cache。代码中 <code>get_kv_cache_spec()</code> 在非 consumer EC transfer 下返回空。</p>
+        </article>
+        <article class="card">
+          <span class="tag">桥接</span>
+          <h3>EC Connector</h3>
+          <p>connector 把 scheduler 的“命中/计划”与 worker 的“加载/保存”分开。当前本地实现是 <code>ECExampleConnector</code>，用共享目录保存 safetensors。</p>
+        </article>
+        <article class="card">
+          <span class="tag">调度</span>
+          <h3>compute vs load</h3>
+          <p>PD scheduler 先查本地 encoder cache，再查外部 EC。外部命中时只安排加载，不把该 MM input 放进 <code>scheduled_encoder_inputs</code>。</p>
+        </article>
+        <article class="card">
+          <span class="tag">演进</span>
+          <h3>SHM 后续增强</h3>
+          <p><code>#44049</code> 增加共享内存 connector、ACK 和独立容量管理，目标是降低磁盘 I/O，并让外部缓存释放成为 scheduler 闭环。</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="topology">
+      <h2>系统拓扑</h2>
+      <p>
+        EPD 不是单个 vLLM server 自动拆分，而是由示例 proxy 组织多个 OpenAI-compatible vLLM 实例。
+        proxy 负责先触发 encoder primer 请求，再把原始请求转发给 PD 或 P/D。
+      </p>
+      <div class="diagram">
+        <div class="topology">
+          <div class="lane client">
+            <h3>Client</h3>
+            <ul>
+              <li>OpenAI chat/completions</li>
+              <li>文本 + image/audio</li>
+              <li>可 stream 或 non-stream</li>
+            </ul>
+          </div>
+          <div>
+            <div class="flow-arrow">→</div>
+          </div>
+          <div class="lane proxy">
+            <h3>EPD Proxy</h3>
+            <ul>
+              <li>提取所有 MM item</li>
+              <li>为每个 item 构造 primer</li>
+              <li>fanout 到 encoder cluster</li>
+              <li>再转发原请求到 PD/P/D</li>
+            </ul>
+          </div>
+          <div>
+            <div class="flow-arrow">↘︎</div>
+            <div class="flow-arrow">↗︎</div>
+          </div>
+          <div class="lane encoder">
+            <h3>Encoder vLLM</h3>
+            <ul>
+              <li><code>ec_role=ec_producer</code></li>
+              <li>只执行 multimodal encoder</li>
+              <li>保存 <code>encoder_cache[mm_hash]</code></li>
+            </ul>
+          </div>
+          <div></div>
+          <div></div>
+          <div class="lane ec">
+            <h3>EC Connector Store</h3>
+            <ul>
+              <li>当前：共享目录 + safetensors</li>
+              <li>索引：<code>mm_hash</code></li>
+              <li>后续：SHM / NIXL / RDMA 方向</li>
+            </ul>
+          </div>
+          <div>
+            <div class="flow-arrow">→</div>
+          </div>
+          <div class="lane pd">
+            <h3>PD / Prefill / Decode</h3>
+            <ul>
+              <li><code>ec_role=ec_consumer</code></li>
+              <li>scheduler 命中外部 EC</li>
+              <li>worker load 到本地 encoder cache</li>
+              <li>P/D 分离时再走 KV connector</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="flow">
+      <h2>端到端请求流</h2>
+      <div class="diagram">
+        <div class="sequence">
+          <div class="step-number">1</div>
+          <div class="step"><strong>Proxy 提取 multimodal item</strong><span><a href="https://github.com/vllm-project/vllm/blob/main/examples/disaggregated/disaggregated_encoder/disagg_epd_proxy.py#L57">extract_mm_items</a> 扫描 messages，把 image/audio/input_audio 收集出来。</span></div>
+          <div class="step-number">2</div>
+          <div class="step"><strong>Proxy fanout encoder primer</strong><span><a href="https://github.com/vllm-project/vllm/blob/main/examples/disaggregated/disaggregated_encoder/disagg_epd_proxy.py#L76">fanout_encoder_primer</a> 为每个 MM item 构造只含媒体、<code>max_tokens=1</code> 的请求，发给 encoder cluster。</span></div>
+          <div class="step-number">3</div>
+          <div class="step"><strong>Encoder scheduler 选择本地计算</strong><span>encoder producer 没有外部命中需求，正常把 MM input 放入 <code>scheduled_encoder_inputs</code>，worker 执行 multimodal encoder。</span></div>
+          <div class="step-number">4</div>
+          <div class="step"><strong>Encoder worker 保存 EC</strong><span>MM encoder 输出进入 <code>encoder_cache[mm_hash]</code>，随后 <a href="https://github.com/vllm-project/vllm/blob/main/vllm/v1/worker/ec_connector_model_runner_mixin.py#L27">maybe_save_ec_to_connector</a> 调用 connector 的 <code>save_caches</code>。</span></div>
+          <div class="step-number">5</div>
+          <div class="step"><strong>Proxy 转发原请求到 PD 或 P/D</strong><span>non-stream 路径见 <a href="https://github.com/vllm-project/vllm/blob/main/examples/disaggregated/disaggregated_encoder/disagg_epd_proxy.py#L318">forward_non_stream</a>，stream 路径类似。</span></div>
+          <div class="step-number">6</div>
+          <div class="step"><strong>PD scheduler 命中外部 EC</strong><span><a href="https://github.com/vllm-project/vllm/blob/main/vllm/v1/core/sched/scheduler.py#L1061">_try_schedule_encoder_inputs</a> 中，若 <code>ec_connector.has_cache_item(mm_hash)</code> 为真，加入 <code>external_load_encoder_input</code>。</span></div>
+          <div class="step-number">7</div>
+          <div class="step"><strong>Scheduler 生成 metadata</strong><span><a href="https://github.com/vllm-project/vllm/blob/main/vllm/v1/core/sched/scheduler.py#L894">build_connector_meta</a> 生成 <code>ec_connector_metadata</code>，挂到 <a href="https://github.com/vllm-project/vllm/blob/main/vllm/v1/core/sched/output.py#L181">SchedulerOutput</a>。</span></div>
+          <div class="step-number">8</div>
+          <div class="step"><strong>PD worker 预加载 EC</strong><span><a href="https://github.com/vllm-project/vllm/blob/main/vllm/v1/worker/ec_connector_model_runner_mixin.py#L55">ECConnectorModelRunnerMixin</a> 绑定 metadata，consumer 调用 <code>start_load_caches</code>，随后 <code>_gather_mm_embeddings</code> 使用本地 encoder cache。</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="modules">
+      <h2>功能模块与源码入口</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>层次</th>
+            <th>职责</th>
+            <th>关键源码</th>
+            <th>阅读要点</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>配置层</td>
+            <td>声明 EC connector、角色、connector 额外参数。</td>
+            <td><a href="https://github.com/vllm-project/vllm/blob/main/vllm/config/ec_transfer.py#L16">ECTransferConfig</a></td>
+            <td><code>ec_producer</code> 只生产；<code>ec_consumer</code> 只消费；<code>ec_both</code> 同时具备生产/消费语义。</td>
+          </tr>
+          <tr>
+            <td>抽象层</td>
+            <td>把 scheduler 侧计划和 worker 侧数据搬运分离。</td>
+            <td><a href="https://github.com/vllm-project/vllm/blob/main/vllm/distributed/ec_transfer/ec_connector/base.py#L59">ECConnectorBase</a></td>
+            <td>看 <code>has_cache_item</code>、<code>update_state_after_alloc</code>、<code>build_connector_meta</code>、<code>start_load_caches</code>、<code>save_caches</code>。</td>
+          </tr>
+          <tr>
+            <td>connector 实现</td>
+            <td>当前本地代码用共享目录保存/加载 safetensors。</td>
+            <td><a href="https://github.com/vllm-project/vllm/blob/main/vllm/distributed/ec_transfer/ec_connector/example_connector.py#L45">ECExampleConnector</a></td>
+            <td>保存路径是 <code>shared_storage_path/mm_hash/encoder_cache.safetensors</code>。</td>
+          </tr>
+          <tr>
+            <td>调度层</td>
+            <td>决定 MM encoder output 是本地计算、复用本地 cache，还是从外部 EC 加载。</td>
+            <td><a href="https://github.com/vllm-project/vllm/blob/main/vllm/v1/core/sched/scheduler.py#L1061">_try_schedule_encoder_inputs</a></td>
+            <td>外部命中会分配本地 encoder cache slot，但不会加入 <code>scheduled_encoder_inputs</code>。</td>
+          </tr>
+          <tr>
+            <td>输出协议</td>
+            <td>把 EC metadata 从 scheduler 带到 worker。</td>
+            <td><a href="https://github.com/vllm-project/vllm/blob/main/vllm/v1/core/sched/output.py#L235">SchedulerOutput.ec_connector_metadata</a></td>
+            <td>metadata 是 connector 自定义结构，当前为 <code>ECExampleConnectorMetadata.mm_datas</code>。</td>
+          </tr>
+          <tr>
+            <td>执行层</td>
+            <td>执行前 load EC，执行后 save EC，并把结果回传。</td>
+            <td><a href="https://github.com/vllm-project/vllm/blob/main/vllm/v1/worker/ec_connector_model_runner_mixin.py#L25">ECConnectorModelRunnerMixin</a></td>
+            <td>context manager 是 EC 生命周期的中心。</td>
+          </tr>
+          <tr>
+            <td>模型 runner</td>
+            <td>在 MM embedding 构造前后嵌入 EC 逻辑；producer 可跳过 KV cache。</td>
+            <td><a href="https://github.com/vllm-project/vllm/blob/main/vllm/v1/worker/gpu_model_runner.py#L3279">GPUModelRunner._preprocess</a></td>
+            <td>consumer 路径 load + gather；producer 路径执行 encoder 后返回空输出。</td>
+          </tr>
+          <tr>
+            <td>部署入口</td>
+            <td>组织 E、PD、P、D 多个服务实例。</td>
+            <td><a href="https://github.com/vllm-project/vllm/blob/main/examples/disaggregated/disaggregated_encoder/disagg_epd_proxy.py#L388">Proxy /v1/chat/completions</a></td>
+            <td>vLLM 本体提供 EC 能力，服务拆分由 proxy 和启动脚本完成。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="tabs">
+      <h2>实现分支与 PR 对照</h2>
+      <div class="tabs">
+        <div class="tab-bar" role="tablist" aria-label="Implementation branches">
+          <button class="tab active" data-tab="current" type="button">当前源码</button>
+          <button class="tab" data-tab="pr25233" type="button">vllm#25233</button>
+          <button class="tab" data-tab="pr44049" type="button">vllm#44049</button>
+        </div>
+        <div class="tab-panel active" id="tab-current">
+          <div class="two-col">
+            <div>
+              <h3>当前 checkout 的事实</h3>
+              <p>
+                当前代码已经包含 EPD 主体框架，但 connector 注册项只有 <code>ECExampleConnector</code>。
+                未发现 <code>ECSharedMemoryConnector</code> 或 <code>ECConnectorCacheManager</code> 文件。
+              </p>
+              <pre><code>ECConnectorFactory.register_connector(
+    "ECExampleConnector",
+    "vllm.distributed.ec_transfer.ec_connector.example_connector",
+    "ECExampleConnector",
+)</code></pre>
+            </div>
+            <div>
+              <h3>当前传输模型</h3>
+              <p>
+                producer 将 EC tensor detach 到 CPU 后保存为 safetensors；
+                consumer 根据 metadata 找到文件并 load 到当前平台设备。这个路径足够验证架构，但磁盘 I/O 会影响高并发 TTFT。
+              </p>
+              <div class="callout info">判断“当前代码支持什么”时，以源码为准：本地没有 SHM connector，文档和 PR 讨论中的 SHM 能力属于后续 PR 范围。</div>
+            </div>
+          </div>
+        </div>
+        <div class="tab-panel" id="tab-pr25233">
+          <div class="two-col">
+            <div>
+              <h3><span class="status"><span class="dot"></span>已合并</span> 主体架构 PR</h3>
+              <p>
+                <a href="https://github.com/vllm-project/vllm/pull/25233">#25233</a>
+                增加了 EC transfer 配置、EC connector 抽象、scheduler 外部 cache 命中逻辑、worker load/save 生命周期、proxy 示例和测试。
+              </p>
+              <ul>
+                <li>让 encoder 实例和 PD 实例能通过 EC connector 共享 MM embeddings。</li>
+                <li>让 producer 侧成为 encoder-only 执行路径，避免语言模型 KV cache 开销。</li>
+                <li>让 PD scheduler 在外部命中时选择 load，而不是重算 encoder。</li>
+              </ul>
+            </div>
+            <div>
+              <h3>可记住的代码形状</h3>
+              <pre><code>if ec_connector.has_cache_item(mm_hash):
+    external_load_encoder_input.append(i)
+    continue
+
+encoder_inputs_to_schedule.append(i)</code></pre>
+              <p>这段分支就是 EPD 的调度本质：同一个 multimodal item，要么外部加载，要么本地计算。</p>
+            </div>
+          </div>
+        </div>
+        <div class="tab-panel" id="tab-pr44049">
+          <div class="two-col">
+            <div>
+              <h3><span class="status"><span class="dot open"></span>Open</span> 后续增强 PR</h3>
+              <p>
+                <a href="https://github.com/vllm-project/vllm/pull/44049">#44049</a>
+                的目标是引入 <code>ECSharedMemoryConnector</code> 和 scheduler 侧 <code>ECConnectorCacheManager</code>。
+                这会把当前磁盘传输换成本机共享内存，并通过 ACK / unlink 管理物理缓存生命周期。
+              </p>
+              <ul>
+                <li>SHM segment 位于 <code>/dev/shm</code>，按 <code>mm_hash</code> 命名。</li>
+                <li>consumer 读完后写 ACK，producer 可观测发送完成。</li>
+                <li>scheduler 输出待释放的 EC connector mm_hash，worker 调用 <code>free_physical_cache</code>。</li>
+              </ul>
+            </div>
+            <div>
+              <h3>它补的是哪块短板</h3>
+              <p>
+                当前本地 scheduler 没有消费 <code>ECConnectorOutput.finished_sending/finished_recving</code> 来驱动外部物理缓存回收。
+                #44049 正是在补“connector 外部存储容量管理”和“物理资源释放”这条闭环。
+              </p>
+              <div class="callout">所以可以把 #44049 理解成：不改变 #25233 的 EPD 主架构，而是替换/增强 EC connector 后端和资源账本。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="limits">
+      <h2>容易混淆点与当前边界</h2>
+      <div class="grid cards-3">
+        <article class="card">
+          <span class="tag">不是自动拆分</span>
+          <h3>需要 proxy 和多实例启动</h3>
+          <p>vLLM 内部提供 EC transfer 能力，但 E、PD、P、D 的服务编排由示例脚本和 proxy 完成。</p>
+        </article>
+        <article class="card">
+          <span class="tag">V1 only</span>
+          <h3>V2 runner 不支持 EC transfer</h3>
+          <p><code>VLLM_USE_V2_MODEL_RUNNER</code> 配置校验会把 EC transfer 加入 unsupported 列表。</p>
+        </article>
+        <article class="card">
+          <span class="tag">当前后端</span>
+          <h3>磁盘 connector 不是低延迟终点</h3>
+          <p>本地实现是 safetensors 落盘。SHM/RDMA 等方向属于后续 connector 演进。</p>
+        </article>
+      </div>
+      <div class="callout info" style="margin-top:14px">
+        <strong>一句话判断当前路径：</strong>
+        如果实例是 <code>ec_producer</code>，它负责生成并保存 EC；如果实例是 <code>ec_consumer</code>，scheduler 会尽量从 EC connector 加载已有 embeddings，再继续语言模型路径。
+      </div>
+    </section>
+
+    <section id="sources">
+      <h2>源码阅读顺序</h2>
+      <div class="source-list">
+        <div class="source-item">
+          <strong>1. EC 配置</strong>
+          <span><a href="https://github.com/vllm-project/vllm/blob/main/vllm/config/ec_transfer.py#L16">vllm/config/ec_transfer.py</a>：角色、connector 名称、自定义配置。</span>
+        </div>
+        <div class="source-item">
+          <strong>2. Connector 基类</strong>
+          <span><a href="https://github.com/vllm-project/vllm/blob/main/vllm/distributed/ec_transfer/ec_connector/base.py#L59">ec_connector/base.py</a>：scheduler/worker 双角色接口。</span>
+        </div>
+        <div class="source-item">
+          <strong>3. 当前 connector</strong>
+          <span><a href="https://github.com/vllm-project/vllm/blob/main/vllm/distributed/ec_transfer/ec_connector/example_connector.py#L45">example_connector.py</a>：safetensors 保存、命中、加载。</span>
+        </div>
+        <div class="source-item">
+          <strong>4. Scheduler 分支</strong>
+          <span><a href="https://github.com/vllm-project/vllm/blob/main/vllm/v1/core/sched/scheduler.py#L1061">scheduler.py</a>：本地 cache、外部 EC、重新计算三选一。</span>
+        </div>
+        <div class="source-item">
+          <strong>5. SchedulerOutput 协议</strong>
+          <span><a href="https://github.com/vllm-project/vllm/blob/main/vllm/v1/core/sched/output.py#L181">sched/output.py</a>：<code>ec_connector_metadata</code> 的传递点。</span>
+        </div>
+        <div class="source-item">
+          <strong>6. Worker lifecycle</strong>
+          <span><a href="https://github.com/vllm-project/vllm/blob/main/vllm/v1/worker/ec_connector_model_runner_mixin.py#L25">ec_connector_model_runner_mixin.py</a>：绑定 metadata、load、save、finished。</span>
+        </div>
+        <div class="source-item">
+          <strong>7. GPU runner</strong>
+          <span><a href="https://github.com/vllm-project/vllm/blob/main/vllm/v1/worker/gpu_model_runner.py#L3279">gpu_model_runner.py</a>：EC context 嵌入 MM embeddings 构造前后。</span>
+        </div>
+        <div class="source-item">
+          <strong>8. Proxy 示例</strong>
+          <span><a href="https://github.com/vllm-project/vllm/blob/main/examples/disaggregated/disaggregated_encoder/disagg_epd_proxy.py#L76">disagg_epd_proxy.py</a>：用户请求如何被拆成 encoder primer 和 PD/P/D 请求。</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>学习检查清单</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>问题</th>
+            <th>能回答时说明你读懂了</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>为什么 producer 不需要语言模型 KV cache？</td>
+            <td>因为它只执行 multimodal encoder，<code>get_kv_cache_spec()</code> 在非 consumer EC transfer 下返回空。</td>
+          </tr>
+          <tr>
+            <td>外部 EC 命中后，scheduler 还会分配本地 encoder cache 吗？</td>
+            <td>会。PD worker 最终仍要从本地 <code>encoder_cache</code> 取 embeddings，只是这些 embeddings 是 load 进来的，不是本地算出来的。</td>
+          </tr>
+          <tr>
+            <td><code>ec_connector_metadata</code> 何时生成、何时消费？</td>
+            <td>scheduler 每步 build；worker 的 EC context 在模型执行前 bind 并消费。</td>
+          </tr>
+          <tr>
+            <td>#44049 和 #25233 是替代关系吗？</td>
+            <td>不是。#25233 是主体架构；#44049 是 connector 后端和资源回收增强。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <footer class="footer">
+      <div>生成日期：2026-05-01。源码快照：<code>ad7125a431e176d4161099480a66f0169609a690</code>。</div>
+      <div>源码链接默认指向 GitHub main 分支，代码可能继续演进；本页的“当前源码事实”基于上述快照核对。</div>
+    </footer>
+  </main>
+
+  <script>
+    document.querySelectorAll(".tab").forEach((button) => {
+      button.addEventListener("click", () => {
+        const target = button.dataset.tab;
+        document.querySelectorAll(".tab").forEach((tab) => {
+          tab.classList.toggle("active", tab === button);
+        });
+        document.querySelectorAll(".tab-panel").forEach((panel) => {
+          panel.classList.toggle("active", panel.id === `tab-${target}`);
+        });
+      });
+    });
+  </script>
+</body>
+</html>
