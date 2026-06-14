@@ -1,0 +1,1933 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FlashAttention vs SageAttention ：原理、源码与选型</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --paper: #ffffff;
+      --ink: #17202a;
+      --muted: #5d6673;
+      --line: #d9dee7;
+      --soft: #eef2f7;
+      --blue: #1f5eff;
+      --cyan: #0f8b8d;
+      --green: #188a42;
+      --amber: #a15c00;
+      --red: #b42318;
+      --violet: #5d4b8c;
+      --shadow: 0 18px 55px rgba(32, 42, 58, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.65;
+    }
+
+    a {
+      color: var(--blue);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    code {
+      padding: 0.12rem 0.32rem;
+      border: 1px solid #d7ddea;
+      border-radius: 5px;
+      background: #f5f7fb;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 0.92em;
+    }
+
+    pre {
+      margin: 0.7rem 0 0;
+      padding: 0.9rem;
+      overflow-x: auto;
+      border: 1px solid #d7ddea;
+      border-radius: 8px;
+      background: #101828;
+      color: #eef4ff;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 0.9rem;
+      line-height: 1.55;
+    }
+
+    pre code {
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      color: inherit;
+      font-size: inherit;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid rgba(210, 216, 226, 0.9);
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(14px);
+    }
+
+    .nav {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      gap: 0.7rem;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      font-weight: 760;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 0.2rem;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .nav-links a {
+      padding: 0.36rem 0.62rem;
+      border-radius: 6px;
+      color: #344054;
+      font-size: 0.92rem;
+    }
+
+    .nav-links a:hover {
+      background: var(--soft);
+      text-decoration: none;
+    }
+
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 1.2rem 1.25rem 4rem;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 1.4rem;
+      align-items: stretch;
+      min-height: 430px;
+      padding: 2.4rem 0 1.3rem;
+    }
+
+    .hero-copy {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .eyebrow {
+      margin: 0 0 0.85rem;
+      color: var(--cyan);
+      font-weight: 760;
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2.15rem, 5vw, 4.2rem);
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      max-width: 760px;
+      margin: 1.15rem 0 0;
+      color: #344054;
+      font-size: 1.08rem;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      margin-top: 1.35rem;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.36rem;
+      padding: 0.38rem 0.62rem;
+      border: 1px solid #d6ddea;
+      border-radius: 999px;
+      background: #f9fbff;
+      color: #384457;
+      font-size: 0.88rem;
+      font-weight: 650;
+    }
+
+    .hero-visual {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #111827;
+      color: #eff6ff;
+      box-shadow: var(--shadow);
+      min-height: 360px;
+      padding: 1.2rem;
+    }
+
+    .chip-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.8rem;
+      font-size: 0.78rem;
+      color: #bfd6ff;
+    }
+
+    .chip-row span {
+      border: 1px solid rgba(191, 214, 255, 0.32);
+      border-radius: 999px;
+      padding: 0.24rem 0.48rem;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .tensor-map {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.65rem;
+      height: calc(100% - 2rem);
+      min-height: 300px;
+    }
+
+    .tensor-column {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 0.55rem;
+      min-width: 0;
+    }
+
+    .tensor-title {
+      font-weight: 760;
+      color: #e6f0ff;
+      font-size: 0.95rem;
+    }
+
+    .blocks {
+      display: grid;
+      grid-template-rows: repeat(8, 1fr);
+      gap: 0.28rem;
+      min-height: 0;
+    }
+
+    .block {
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.13);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .block.q {
+      background: linear-gradient(90deg, rgba(31, 94, 255, 0.7), rgba(15, 139, 141, 0.55));
+    }
+
+    .block.k {
+      background: linear-gradient(90deg, rgba(24, 138, 66, 0.68), rgba(15, 139, 141, 0.5));
+    }
+
+    .block.v {
+      background: linear-gradient(90deg, rgba(161, 92, 0, 0.72), rgba(93, 75, 140, 0.58));
+    }
+
+    .tensor-foot {
+      color: #d9e7ff;
+      font-size: 0.83rem;
+    }
+
+    section {
+      margin-top: 1.5rem;
+      scroll-margin-top: 84px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 0.9rem;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 1.65rem;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .section-note {
+      max-width: 560px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.96rem;
+    }
+
+    .grid {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .cards-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .cards-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .cards-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .card,
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      box-shadow: 0 8px 26px rgba(32, 42, 58, 0.07);
+    }
+
+    .card {
+      padding: 1rem;
+    }
+
+    .card h3,
+    .panel h3 {
+      margin: 0 0 0.5rem;
+      font-size: 1rem;
+      line-height: 1.28;
+    }
+
+    .card p,
+    .panel p {
+      margin: 0.35rem 0 0;
+      color: #475467;
+    }
+
+    .metric {
+      display: block;
+      margin-bottom: 0.4rem;
+      color: var(--blue);
+      font-size: 1.55rem;
+      line-height: 1;
+      font-weight: 820;
+    }
+
+    .panel {
+      padding: 1.15rem;
+    }
+
+    .diagram {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      padding: 1.2rem;
+      overflow-x: auto;
+    }
+
+    .flow {
+      min-width: 900px;
+      display: grid;
+      grid-template-columns: 1fr 36px 1fr 36px 1fr 36px 1fr;
+      align-items: stretch;
+      gap: 0.65rem;
+    }
+
+    .flow-box {
+      border: 1px solid #cfd7e6;
+      border-radius: 8px;
+      padding: 0.85rem;
+      background: #f9fbff;
+      min-height: 122px;
+    }
+
+    .flow-box strong {
+      display: block;
+      margin-bottom: 0.35rem;
+      font-size: 0.98rem;
+    }
+
+    .flow-box span {
+      color: #526071;
+      font-size: 0.9rem;
+    }
+
+    .arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--cyan);
+      font-weight: 900;
+      font-size: 1.5rem;
+    }
+
+    .pipeline {
+      counter-reset: step;
+      display: grid;
+      gap: 0.7rem;
+    }
+
+    .step {
+      counter-increment: step;
+      display: grid;
+      grid-template-columns: 2.4rem 1fr;
+      gap: 0.8rem;
+      align-items: start;
+      padding: 0.9rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .step::before {
+      content: counter(step);
+      display: inline-grid;
+      place-items: center;
+      width: 2.05rem;
+      height: 2.05rem;
+      border-radius: 999px;
+      background: #e8f0ff;
+      color: var(--blue);
+      font-weight: 800;
+    }
+
+    .step h3 {
+      margin: 0 0 0.2rem;
+      font-size: 1rem;
+    }
+
+    .step p {
+      margin: 0;
+      color: #4d5968;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    th,
+    td {
+      padding: 0.78rem 0.8rem;
+      border-bottom: 1px solid #e3e8f0;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f1f5fb;
+      color: #273444;
+      font-size: 0.9rem;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .tag {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 0.15rem 0.42rem;
+      font-size: 0.78rem;
+      font-weight: 760;
+      white-space: nowrap;
+    }
+
+    .tag.ok {
+      color: #11613a;
+      background: #e8f6ee;
+    }
+
+    .tag.warn {
+      color: #875000;
+      background: #fff4df;
+    }
+
+    .tag.stop {
+      color: #9a241d;
+      background: #ffebe9;
+    }
+
+    .tag.info {
+      color: #2453b3;
+      background: #eaf1ff;
+    }
+
+    .tabs {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      overflow: hidden;
+    }
+
+    .tab-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+      padding: 0.55rem;
+      background: #f1f5fb;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .tab {
+      border: 1px solid transparent;
+      border-radius: 6px;
+      background: transparent;
+      color: #344054;
+      padding: 0.48rem 0.7rem;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 720;
+    }
+
+    .tab.active {
+      border-color: #bfd1ff;
+      background: #ffffff;
+      color: var(--blue);
+    }
+
+    .tab-panel {
+      display: none;
+      padding: 1.1rem;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    .tab-panel h3 {
+      margin-top: 0;
+    }
+
+    .callout {
+      border: 1px solid #bfd1ff;
+      border-left: 5px solid var(--blue);
+      border-radius: 8px;
+      background: #f7faff;
+      padding: 0.95rem 1rem;
+    }
+
+    .callout.warning {
+      border-color: #ffd9a3;
+      border-left-color: var(--amber);
+      background: #fffaf0;
+    }
+
+    .callout.danger {
+      border-color: #ffc9c4;
+      border-left-color: var(--red);
+      background: #fff7f6;
+    }
+
+    .callout p {
+      margin: 0;
+      color: #344054;
+    }
+
+    .source-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.8rem;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 0.8rem;
+    }
+
+    .timeline-item {
+      display: grid;
+      grid-template-columns: 8.5rem 1fr;
+      gap: 0.9rem;
+      align-items: start;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 0.9rem;
+    }
+
+    .timeline-date {
+      color: var(--blue);
+      font-weight: 820;
+    }
+
+    .timeline-item h3 {
+      margin: 0 0 0.25rem;
+      font-size: 1rem;
+    }
+
+    .timeline-item p {
+      margin: 0.25rem 0 0;
+      color: #526071;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .formula {
+      border: 1px solid #cfe0ff;
+      border-radius: 8px;
+      background: #f7faff;
+      padding: 0.9rem;
+      color: #273444;
+    }
+
+    .source-item {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 0.9rem;
+    }
+
+    .source-item strong {
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .source-item p {
+      margin: 0;
+      color: #526071;
+      font-size: 0.95rem;
+    }
+
+    .checklist {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.65rem;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .checklist li {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 0.75rem 0.82rem;
+    }
+
+    .checklist li::before {
+      content: "✓";
+      margin-right: 0.45rem;
+      color: var(--green);
+      font-weight: 900;
+    }
+
+    .foot {
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    @media (max-width: 980px) {
+      .hero,
+      .cards-4,
+      .cards-3,
+      .cards-2,
+      .split,
+      .source-list,
+      .checklist {
+        grid-template-columns: 1fr;
+      }
+
+      .timeline-item {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        padding-top: 1rem;
+      }
+
+      .nav {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .nav-links {
+        justify-content: flex-start;
+      }
+    }
+
+    @media (max-width: 620px) {
+      main {
+        padding-left: 0.85rem;
+        padding-right: 0.85rem;
+      }
+
+      .hero-copy,
+      .hero-visual,
+      .panel,
+      .diagram {
+        padding: 0.9rem;
+      }
+
+      .section-head {
+        display: block;
+      }
+
+      .section-note {
+        margin-top: 0.35rem;
+      }
+
+      th,
+      td {
+        padding: 0.65rem 0.55rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <nav class="nav" aria-label="主导航">
+      <div class="brand">Attention 内核复习笔记</div>
+      <div class="nav-links">
+        <a href="#summary">核心结论</a>
+        <a href="#flash-principles">FlashAttention</a>
+        <a href="#architecture">架构图</a>
+        <a href="#pipeline">执行流水线</a>
+        <a href="#backends">后端矩阵</a>
+        <a href="#comparison">技术对比</a>
+        <a href="#decision">选型与踩坑</a>
+        <a href="#source">源码走读</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero" id="top">
+      <div class="hero-copy">
+        <p class="eyebrow">Full learning note with source calibration</p>
+        <h1>FlashAttention vs SageAttention </h1>
+        <p class="lead">
+          先讲标准 Attention 的瓶颈，
+          再串起 FlashAttention v1/v2/v3/v4 的 IO-aware 路线，最后用 SageAttention 2.2.0 源码校准 INT8/FP8/FP4 量化路线、GPU 后端、功能边界和选型决策。
+        </p>
+        <div class="meta">
+          <span class="pill">Note: FlashAttention vs SageAttention</span>
+          <span class="pill">Repo: thu-ml/SageAttention</span>
+          <span class="pill">Subdir: SageAttention</span>
+          <span class="pill">Commit: 3647690</span>
+          <span class="pill">Package: sageattention 2.2.0</span>
+        </div>
+      </div>
+      <div class="hero-visual" aria-label="SageAttention 数据流示意">
+        <div class="chip-row">
+          <span>IO-aware</span>
+          <span>INT8 QK</span>
+          <span>FP16 / FP8 / FP4</span>
+        </div>
+        <div class="tensor-map">
+          <div class="tensor-column">
+            <div class="tensor-title">Q / Query</div>
+            <div class="blocks">
+              <div class="block q"></div><div class="block q"></div><div class="block q"></div><div class="block q"></div>
+              <div class="block q"></div><div class="block q"></div><div class="block q"></div><div class="block q"></div>
+            </div>
+            <div class="tensor-foot">per-block / per-warp / per-thread scale</div>
+          </div>
+          <div class="tensor-column">
+            <div class="tensor-title">K / Key</div>
+            <div class="blocks">
+              <div class="block k"></div><div class="block k"></div><div class="block k"></div><div class="block k"></div>
+              <div class="block k"></div><div class="block k"></div><div class="block k"></div><div class="block k"></div>
+            </div>
+            <div class="tensor-foot">smooth_k fused subtract mean</div>
+          </div>
+          <div class="tensor-column">
+            <div class="tensor-title">V / Value</div>
+            <div class="blocks">
+              <div class="block v"></div><div class="block v"></div><div class="block v"></div><div class="block v"></div>
+              <div class="block v"></div><div class="block v"></div><div class="block v"></div><div class="block v"></div>
+            </div>
+            <div class="tensor-foot">FP16 on SM80/86, FP8 on SM89+</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="summary">
+      <div class="section-head">
+        <h2>核心结论</h2>
+        <p class="section-note">两条路线解决同一个 Attention 瓶颈：FlashAttention 优先减少 HBM IO 并保持数学等价；SageAttention 优先降低 QK/PV 计算精度以换取更高 tensor core 吞吐。</p>
+      </div>
+      <div class="grid cards-4">
+        <article class="card">
+          <span class="metric">IO</span>
+          <h3>FlashAttention 不物化 N×N</h3>
+          <p>
+            FlashAttention 的核心是 tiling + online softmax：在 SRAM 中分块计算 QK、softmax、PV，只把 Q/K/V/O/LSE 等 O(N) 状态留在 HBM，
+            避免存储 S/P 两个 N×N 矩阵。
+          </p>
+        </article>
+        <article class="card">
+          <span class="metric">8-bit</span>
+          <h3>Q/K 统一走 INT8</h3>
+          <p>
+            主包的所有 SageAttention2/2++ 前向路径都会把 Q/K 量化为 INT8，并携带 FP32 scale 进入 attention kernel。
+            CUDA 量化入口在 <a href="https://github.com/thu-ml/SageAttention/blob/main/sageattention/quant.py#L22">quant.py:22</a> 与
+            <a href="https://github.com/thu-ml/SageAttention/blob/main/sageattention/quant.py#L105">quant.py:105</a>。
+          </p>
+        </article>
+        <article class="card">
+          <span class="metric">SM</span>
+          <h3>按 GPU 架构自动分派</h3>
+          <p>
+            <code>sageattn()</code> 读取当前设备 compute capability，SM80/86/89/90/120/121 分别进入不同后端；
+            分派逻辑集中在 <a href="https://github.com/thu-ml/SageAttention/blob/main/sageattention/core.py#L143">core.py:143</a>。
+          </p>
+        </article>
+        <article class="card">
+          <span class="metric">FP8</span>
+          <h3>V 的精度随后端变化</h3>
+          <p>
+            SM80/SM86 使用 FP16 PV，SM89/SM90/SM120/SM121 使用 FP8 V 路径；
+            FP8 V 会先转置、padding、permute，再做 per-channel 量化，入口在
+            <a href="https://github.com/thu-ml/SageAttention/blob/main/sageattention/quant.py#L224">quant.py:224</a>。
+          </p>
+        </article>
+        <article class="card">
+          <span class="metric">FP4</span>
+          <h3>SageAttention3 是独立分支</h3>
+          <p>
+            Blackwell FP4 实现在 <code>sageattention3_blackwell</code>，入口是 <code>sageattn3_blackwell()</code>，
+            不是主包 <code>sageattention.sageattn()</code> 自动调度的一部分。
+          </p>
+        </article>
+      </div>
+      <div class="callout warning" style="margin-top: 1rem;">
+        <p>
+          准确性边界：FlashAttention/FA4 部分来自论文与生态背景，用于复习技术路线；SageAttention 具体行为以本地源码 commit
+          <code>3647690</code> 为准。凡是“开发中、PR 中、版本号、硬件支持状态”这类会快速变化的信息，生产选型前都需要重新核对上游。
+        </p>
+      </div>
+    </section>
+
+    <section id="problem">
+      <div class="section-head">
+        <h2>Attention 的瓶颈</h2>
+        <p class="section-note">标准 Attention 的 FLOPs 是 O(N²d)，但工程上更痛的是 N×N 中间矩阵和 HBM 往返。</p>
+      </div>
+      <div class="split">
+        <div class="panel">
+          <h3>标准计算流程</h3>
+          <pre><code>S = Q × K^T          # N × N scores
+P = softmax(S)      # N × N probabilities
+O = P × V           # N × d output</code></pre>
+          <p>
+            如果直接实现，S 和 P 都会成为 N×N 矩阵。序列越长，显存和带宽压力按平方增长；N=4096 时，单 head 的 FP16 attention matrix 已经是数十 MB 量级。
+          </p>
+        </div>
+        <div class="panel">
+          <h3>两类优化路线</h3>
+          <table aria-label="FlashAttention 与 SageAttention 的路线差异">
+            <thead>
+              <tr><th>路线</th><th>核心动作</th><th>代价</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>FlashAttention</td>
+                <td>减少 HBM IO，不物化 N×N，online softmax 精确重缩放。</td>
+                <td>kernel 编排复杂，对 GPU 架构高度适配。</td>
+              </tr>
+              <tr>
+                <td>SageAttention</td>
+                <td>Q/K INT8、V FP8/FP16/FP4，利用低比特 tensor core 吞吐。</td>
+                <td>引入量化误差，需要 smoothing、细粒度 scale 和两级累加控制精度。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="flash-principles">
+      <div class="section-head">
+        <h2>FlashAttention 原理</h2>
+        <p class="section-note">FlashAttention 的关键不是减少理论 FLOPs，而是让 Q/K/V 小块在 SRAM 中完成计算，避免反复读写 N×N 的 score/probability。</p>
+      </div>
+      <div class="grid cards-3">
+        <article class="panel">
+          <h3>IO-Aware Tiling</h3>
+          <p>
+            Q、K、V 被切成适合 SRAM 的 tile。每个 Q tile 依次扫描 K/V tile，在片上完成局部 score、softmax 统计量更新和输出累加。
+            HBM 只保留输入、输出和每行 LSE 这样的 O(N) 状态。
+          </p>
+        </article>
+        <article class="panel">
+          <h3>Online Softmax</h3>
+          <p>
+            softmax 的全局分母通过增量维护行最大值 <code>m</code> 和指数和 <code>l</code> 完成。每处理一个 K block，如果新的最大值变大，
+            旧输出乘以 <code>exp(m_old - m_new)</code> 精确重缩放。
+          </p>
+        </article>
+        <article class="panel">
+          <h3>Backward Recomputation</h3>
+          <p>
+            前向不保存 P，而保存 O 与每行 LSE；反向按块重算 <code>P_ij = exp(Q_i K_j^T / sqrt(d) - L_i)</code>。
+            这牺牲一部分计算，换显存和 HBM 访问下降。
+          </p>
+        </article>
+      </div>
+      <div class="formula" style="margin-top: 1rem;">
+        <strong>Online softmax 状态更新：</strong>
+        <pre><code>m_new = max(m_old, rowmax(S_ij))
+scale = exp(m_old - m_new)
+l_new = l_old * scale + rowsum(exp(S_ij - m_new))
+O_new = O_old * scale + exp(S_ij - m_new) @ V_j
+O_final = O_new / l_new</code></pre>
+      </div>
+    </section>
+
+    <section id="flash-evolution">
+      <div class="section-head">
+        <h2>FlashAttention 演进</h2>
+        <p class="section-note">从 FA1 到 FA4，主线是把非矩阵乘开销、同步、数据搬运和硬件异步能力一点点压进更深的流水线。</p>
+      </div>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-date">FA1 · 2022</div>
+          <div>
+            <h3>IO-aware attention</h3>
+            <p>
+              用 tiling + online softmax 避免保存 S/P，证明在合理 SRAM 大小下可以达到更优 HBM IO 复杂度。
+              这是 FlashAttention 系列的“数学骨架”。
+            </p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-date">FA2 · 2023</div>
+          <div>
+            <h3>并行度与 warp 分区优化</h3>
+            <p>
+              交换循环顺序，提高长序列下的 SM 利用率；让 warp 持有完整行以减少 warp 间通信；延迟归一化，减少非矩阵乘 FLOPs。
+            </p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-date">FA3 · 2024</div>
+          <div>
+            <h3>Hopper: WGMMA + TMA + Warp Specialization</h3>
+            <p>
+              使用异步 WGMMA 做矩阵乘、TMA 做 HBM/SRAM 搬运，生产者/消费者 warp 特化。Ping-pong 调度让一个 warpgroup 做 GEMM 时，另一个处理 softmax。
+            </p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-date">FA4 · 2026 背景</div>
+          <div>
+            <h3>Blackwell: 更深流水线与可编程稀疏</h3>
+            <p>
+              笔记中的 FA4 信息应视为论文/生态背景：面向 Blackwell 的异步 MMA、TMEM、软件 exp、条件重缩放、CuTe DSL 和 FlexAttention 集成。
+              这些不是本 SageAttention 仓库源码实现。
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="fa4-deep-dive">
+      <div class="section-head">
+        <h2>FA4 复习要点</h2>
+        <p class="section-note">这部分来自论文梳理，用来理解为什么 B200/SM100 上 FlashAttention 路线仍然很强。</p>
+      </div>
+      <div class="grid cards-3">
+        <article class="panel">
+          <h3>5 路 Warp 特化</h3>
+          <p>
+            将 FA4 拆成 load、MMA、softmax、correction、epilogue 多类 warp。核心意图是把完全异步的 tensor core 工作、softmax 和数据搬运重叠起来，
+            防止 Blackwell 上 SFU/共享内存等非对称资源成为瓶颈。
+          </p>
+        </article>
+        <article class="panel">
+          <h3>软件 exp 与条件重缩放</h3>
+          <p>
+            当硬件指数单元跟不上 tensor core 吞吐时，FA4 用 FMA 上的多项式近似实现部分 <code>exp2</code>，
+            并只在数值稳定性需要时重缩放中间输出，减少 online softmax 的校正次数。
+          </p>
+        </article>
+        <article class="panel">
+          <h3>TMEM 与 2-CTA MMA</h3>
+          <p>
+            Blackwell 的 Tensor Memory 可作为 tensor core 直连累加空间。2-CTA MMA 可以扩大 tile 并减少部分反向路径中的冗余数据流和原子归约压力。
+          </p>
+        </article>
+        <article class="panel">
+          <h3>CuTe DSL</h3>
+          <p>
+            强调 FA4 从 CUDA C++ 模板转向 Python 侧 CuTe DSL，降低 kernel 变体开发和编译迭代成本。这一点属于 FA4 生态实现，不是 SageAttention 当前源码。
+          </p>
+        </article>
+        <article class="panel">
+          <h3>FlexAttention / Block-Sparse</h3>
+          <p>
+            score_mod 与 mask_mod 可以把 ALiBi、softcapping、sliding window、document mask 等模式在编译时注入 kernel。
+            对稀疏 attention，关键是跳过 Empty block、简化 Full block、只对 Partial block 应用 mask。
+          </p>
+        </article>
+        <article class="panel">
+          <h3>准确性提醒</h3>
+          <p>
+            FA4 版本号、PR、GPU 支持状态和具体 TFLOPS 数字都属于上游快速变化内容。HTML 保留这些作为复习线索，
+            但不把它们当作本 SageAttention 仓库可证明的源码事实。
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section id="architecture">
+      <div class="section-head">
+        <h2>架构图</h2>
+        <p class="section-note">从 Python API 到 CUDA/Triton kernel，关键分层可以拆成 API 层、调度层、量化层、attention kernel 层和可选 Blackwell FP4 包。</p>
+      </div>
+      <div class="diagram">
+        <div class="flow" role="img" aria-label="SageAttention 架构分层流程图">
+          <div class="flow-box">
+            <strong>1. Public API</strong>
+            <span>
+              <code>sageattention.__init__</code> 暴露 <code>sageattn</code>、<code>sageattn_varlen</code> 以及几个显式后端函数。
+              见 <a href="https://github.com/thu-ml/SageAttention/blob/main/sageattention/__init__.py#L1">__init__.py:1</a>。
+            </span>
+          </div>
+          <div class="arrow">→</div>
+          <div class="flow-box">
+            <strong>2. Dispatch & validation</strong>
+            <span>
+              <code>core.py</code> 校验 dtype/device/layout/head_dim，按 SM 架构选择 FP16 或 FP8 PV 后端，并处理 <code>smooth_k</code>、LSE 校正。
+            </span>
+          </div>
+          <div class="arrow">→</div>
+          <div class="flow-box">
+            <strong>3. Quantization</strong>
+            <span>
+              Q/K 量化为 INT8；K 的均值减法可融合进量化 kernel。V 在 FP8 后端走 per-channel FP8 量化。
+            </span>
+          </div>
+          <div class="arrow">→</div>
+          <div class="flow-box">
+            <strong>4. Attention kernels</strong>
+            <span>
+              SM80/89/90 对应不同 C++/CUDA 扩展；SM86 主要走 Triton；SM90 kernel 使用 TMA 相关路径。
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid cards-2" style="margin-top: 1rem;">
+        <div class="panel">
+          <h3>主包 SageAttention2/2++</h3>
+          <p>
+            源码包名为 <code>sageattention</code>，版本在 <a href="https://github.com/thu-ml/SageAttention/blob/main/setup.py#L272">setup.py:272</a>
+            声明为 <code>2.2.0</code>。README 明确列出 Ampere/Ada/Hopper 优化、QK INT8、PV FP8、两级累加、torch.compile 非 cudagraph 与分布式推理支持，
+            见 <a href="https://github.com/thu-ml/SageAttention/blob/main/README.md#L23">README.md:23</a>。
+          </p>
+        </div>
+        <div class="panel">
+          <h3>Blackwell FP4 分支</h3>
+          <p>
+            <code>sageattention3_blackwell</code> 构建独立包 <code>sageattn3</code>，会编译 <code>fp4attn_cuda</code> 与 <code>fp4quant_cuda</code>。
+            Python 入口先预处理 Q/K/V，再打包 FP4 与 FP8 scale，最后调用 C++ CUDA kernel；构建脚本要求 CUDA 12.8+，
+            见 <a href="https://github.com/thu-ml/SageAttention/blob/main/sageattention3_blackwell/setup.py#L60">sageattention3_blackwell/setup.py:60</a>。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section id="pipeline">
+      <div class="section-head">
+        <h2>执行流水线</h2>
+        <p class="section-note">这里以主包 <code>sageattention.sageattn()</code> 和 SM89/SM90 类 FP8 后端为代表，串起最常见的推理路径。</p>
+      </div>
+      <div class="pipeline">
+        <div class="step">
+          <div>
+            <h3>输入校验与布局解释</h3>
+            <p>
+              API 支持 <code>HND</code> 和 <code>NHD</code> 两种布局，Q/K/V 必须在同一 CUDA 设备且 dtype 一致；
+              主实现只接受 FP16/BF16 输入，head_dim 会被 padding 到 64 或 128，大于 128 直接拒绝。
+              见 <a href="https://github.com/thu-ml/SageAttention/blob/main/sageattention/core.py#L724">core.py:724</a>。
+            </p>
+          </div>
+        </div>
+        <div class="step">
+          <div>
+            <h3>GPU 架构分派</h3>
+            <p>
+              <code>get_cuda_arch_versions()</code> 读取所有 CUDA 设备架构，<code>sageattn()</code> 用当前 Q 所在设备索引选出分支。
+              SM89 默认进入 <code>sageattn_qk_int8_pv_fp8_cuda(..., pv_accum_dtype="fp32+fp16")</code>，
+              SM90 进入专用 <code>sageattn_qk_int8_pv_fp8_cuda_sm90(..., pv_accum_dtype="fp32+fp32")</code>。
+            </p>
+          </div>
+        </div>
+        <div class="step">
+          <div>
+            <h3>smooth_k 与 LSE 校正</h3>
+            <p>
+              开启 <code>smooth_k</code> 时，代码先沿序列维度计算 K 的均值，GQA 场景会把 KV head 的均值广播到 Q head。
+              如果用户请求 <code>return_lse</code>，还会计算 <code>q @ mean(K)</code> 形式的校正项，返回时加回
+              <a href="https://github.com/thu-ml/SageAttention/blob/main/sageattention/core.py#L772">core.py:772</a>。
+            </p>
+          </div>
+        </div>
+        <div class="step">
+          <div>
+            <h3>Q/K INT8 量化</h3>
+            <p>
+              CUDA 后端的 <code>per_warp_int8</code> 将 Q 的 scale 做到 warp 粒度，K 仍以 block 粒度为主；
+              <code>per_thread_int8</code> 是 Triton kernel，Q scale 扩展到每个 thread lane 分组。SM120/121 自动分支强制使用 <code>per_warp</code>。
+            </p>
+          </div>
+        </div>
+        <div class="step">
+          <div>
+            <h3>V 的 FP16/FP8 准备</h3>
+            <p>
+              SM80/SM86 走 FP16 PV；SM89/SM90/SM120/SM121 走 FP8 V。FP8 V 量化时会做 transpose、padding 到 64 对齐、固定顺序 permute、per-channel scale。
+              当 SM89 使用 <code>pv_accum_dtype="fp32+fp16"</code> 时，<code>scale_max</code> 从 448 降到 2.25 以适配 FP16 二级累加。
+            </p>
+          </div>
+        </div>
+        <div class="step">
+          <div>
+            <h3>attention kernel 前向</h3>
+            <p>
+              kernel 输入包含 INT8 Q/K、FP16 或 FP8 V、scale、layout、causal 标志、量化粒度和 softmax scale。
+              SM90 C++ kernel 内部将 <code>sm_scale</code> 乘以 <code>log2(e)</code>，维护 online softmax 的 <code>m/d</code> 状态，并通过 TMA tensor map 加载 Q/K/V。
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="backends">
+      <div class="section-head">
+        <h2>后端矩阵</h2>
+        <p class="section-note">源码里的“自动选择”其实是非常明确的架构表；手动调用显式函数时，也应按这张表理解精度与限制。</p>
+      </div>
+
+      <table aria-label="SageAttention 后端调度矩阵">
+        <thead>
+          <tr>
+            <th>GPU 架构</th>
+            <th><code>sageattn()</code> 分支</th>
+            <th>Q/K 路径</th>
+            <th>V/PV 路径</th>
+            <th>源码确认点</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>SM80<br><span class="tag info">A100/A800 类</span></td>
+            <td><code>sageattn_qk_int8_pv_fp16_cuda</code></td>
+            <td>INT8，默认 <code>per_thread</code></td>
+            <td>FP16 V，默认 FP32 PV 累加</td>
+            <td><a href="https://github.com/thu-ml/SageAttention/blob/main/sageattention/core.py#L144">core.py:144</a>；CUDA extension 暴露 FP16/FP32 累加变体。</td>
+          </tr>
+          <tr>
+            <td>SM86<br><span class="tag info">RTX 3090 类</span></td>
+            <td><code>sageattn_qk_int8_pv_fp16_triton</code></td>
+            <td>INT8 per-block，Triton</td>
+            <td>FP16 PV，Triton attention</td>
+            <td><a href="https://github.com/thu-ml/SageAttention/blob/main/sageattention/core.py#L146">core.py:146</a>；非 causal 路径支持 <code>attn_mask</code>。</td>
+          </tr>
+          <tr>
+            <td>SM89<br><span class="tag ok">Ada / RTX 4090 / L20</span></td>
+            <td><code>sageattn_qk_int8_pv_fp8_cuda</code></td>
+            <td>INT8，默认 <code>per_thread</code></td>
+            <td>FP8 V；默认 <code>fp32+fp16</code> 两级累加</td>
+            <td><a href="https://github.com/thu-ml/SageAttention/blob/main/sageattention/core.py#L148">core.py:148</a>；SM89 pybind 暴露 FP8/fuse scale/inst buffer 变体。</td>
+          </tr>
+          <tr>
+            <td>SM90<br><span class="tag ok">H100/H20 类</span></td>
+            <td><code>sageattn_qk_int8_pv_fp8_cuda_sm90</code></td>
+            <td>INT8，默认 <code>per_thread</code></td>
+            <td>FP8 V；只实现 <code>fp32+fp32</code> 推荐路径</td>
+            <td><a href="https://github.com/thu-ml/SageAttention/blob/main/sageattention/core.py#L985">core.py:985</a> 对 <code>fp32</code> 直接抛 <code>NotImplementedError</code>。</td>
+          </tr>
+          <tr>
+            <td>SM120/121<br><span class="tag warn">RTX 5090 / Blackwell 消费级</span></td>
+            <td><code>sageattn_qk_int8_pv_fp8_cuda</code></td>
+            <td>INT8，强制 <code>per_warp</code></td>
+            <td>FP8 V；<code>fp32+fp16</code></td>
+            <td><a href="https://github.com/thu-ml/SageAttention/blob/main/sageattention/core.py#L152">core.py:152</a> 注释说明 Triton kernel 当前不可用。</td>
+          </tr>
+          <tr>
+            <td>SM100<br><span class="tag stop">B200/GB200</span></td>
+            <td>主 <code>sageattn()</code> 未分派</td>
+            <td>主包 setup 可编译 SM100 标志，但 Python 自动调度不覆盖</td>
+            <td>主包无 SM100 自动路径</td>
+            <td><a href="https://github.com/thu-ml/SageAttention/blob/main/setup.py#L156">setup.py:156</a> 有 SM100 编译标志；<a href="https://github.com/thu-ml/SageAttention/blob/main/sageattention/core.py#L157">core.py:157</a> 对未知 arch 抛错。</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="tabs" style="margin-top: 1rem;">
+        <div class="tab-list" role="tablist" aria-label="实现分支详情">
+          <button class="tab active" data-tab="api" type="button">API/调度</button>
+          <button class="tab" data-tab="quant" type="button">量化模块</button>
+          <button class="tab" data-tab="cuda" type="button">CUDA kernel</button>
+          <button class="tab" data-tab="blackwell" type="button">SageAttention3</button>
+          <button class="tab" data-tab="flash" type="button">FlashAttention 对照</button>
+        </div>
+        <div class="tab-panel active" id="tab-api">
+          <h3>API/调度：自动入口很薄，真实选择写死在 <code>core.py</code></h3>
+          <p>
+            <code>sageattn()</code> 的签名接收 <code>**kwargs</code>，但当前自动入口没有把这些 <code>kwargs</code> 转发给底层显式函数。
+            这意味着如果需要手动指定 <code>qk_quant_gran</code>、<code>pv_accum_dtype</code>、<code>smooth_v</code> 等参数，应该直接调用显式后端函数。
+          </p>
+          <p>
+            <code>sageattn_varlen()</code> 是单独的变长路径：它使用 Triton per-block INT8 量化和 FP16 PV，不进入 SM89/SM90 FP8 CUDA 后端。
+            README 只说支持 varying sequence lengths，但源码里 <code>smooth_k</code> 对 varlen 的均值是按全部 token 维度计算，注释也说明“按每个序列单独计算需要专用 kernel”，
+            见 <a href="https://github.com/thu-ml/SageAttention/blob/main/sageattention/core.py#L432">core.py:432</a>。
+          </p>
+        </div>
+        <div class="tab-panel" id="tab-quant">
+          <h3>量化模块：scale 的形状决定 kernel 的读取方式</h3>
+          <p>
+            <code>per_block_int8</code> 为 Q/K 按 block 生成 scale；<code>per_warp_int8</code> 将 Q scale 拆到 warp 粒度；
+            <code>per_thread_int8</code> 的 Triton kernel 对 Q 生成 <code>*8</code> 的 lane 分组 scale，对 K 生成 <code>*4</code> 的分组 scale。
+            SM90 C++ kernel 在 scale shape 检查处明确区分 per_warp 与 per_thread。
+          </p>
+          <p>
+            V 的 FP8 量化不是简单 cast：源码先调用 fused kernel 做 transpose/pad/permute，再用 E4M3 FP8 输出和 FP32 scale。
+            <code>smooth_v</code> 只在部分 FP32 累加路径有意义；两级累加路径会发出 warning 并忽略。
+          </p>
+        </div>
+        <div class="tab-panel" id="tab-cuda">
+          <h3>CUDA kernel：SM80、SM89、SM90 的差异主要在 PV dtype 与硬件路径</h3>
+          <p>
+            SM80 extension 暴露 <code>qk_int8_sv_f16_accum_f16_attn</code>、<code>accum_f32</code>、<code>inst_buf</code> 与 <code>fuse_v_mean</code> 变体。
+            SM89 extension 暴露 FP8 V scale 融合与两级累加变体。
+            SM90 extension 只暴露 FP8 inst buffer 路径，Python 层也拒绝普通 <code>fp32</code> 累加模式。
+          </p>
+          <p>
+            SM90 的 C++ kernel 使用 <code>CUtensorMap</code> 创建 Q/K/V 的 TMA 加载映射，并以 <code>CTA_Q=64</code>、<code>CTA_K=128</code>、<code>NUM_THREADS=128</code> 发射 kernel。
+          </p>
+        </div>
+        <div class="tab-panel" id="tab-blackwell">
+          <h3>SageAttention3/Blackwell：源码是 FP4 包，不是主包增强版</h3>
+          <p>
+            <code>sageattn3_blackwell</code> README 要求 Python、Torch、CUDA 较新的环境，并要求从源码编译。
+            Python API 里会对 K 做均值平滑、对 Q 做 per-block 或全局均值平滑，并计算 <code>delta_s</code> 作为校正项；
+            随后 Q/K/V 都被 packed 成 FP4，scale 用 FP8 E4M3 存储。
+          </p>
+          <p>
+            一个关键源码事实：C++ 入口检查当前 GPU 必须是 SM120 或 SM121，并报错文案写着 “Blackwell GPUs or newer”。
+            这和主包 <code>sageattn()</code> 的 SM120/121 INT8+FP8 路径是两条独立路线，见
+            <a href="https://github.com/thu-ml/SageAttention/blob/main/sageattention3_blackwell/sageattn3/blackwell/api.cu#L219">blackwell/api.cu:219</a>。
+          </p>
+        </div>
+        <div class="tab-panel" id="tab-flash">
+          <h3>FlashAttention 对照：作为选型背景，而非本仓库实现</h3>
+          <p>
+            关于 FA1/2/3/4 的内容适合作为工程选型背景：FlashAttention 的核心是减少 HBM IO、保持 attention 数值形式更接近原计算，并提供训练/反向和 KV cache 生态能力。
+            但本页的源码事实只覆盖 SageAttention 仓库；FA4/B200 的具体能力不应从这个源码树推断。
+          </p>
+          <p>
+            因此对比时可以简化为：训练、复杂 mask、paged KV、decode 场景优先考虑 FlashAttention 或框架内核；视觉/视频生成、长序列 prefill、可接受轻微量化误差的推理场景，SageAttention 更值得测试。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section id="modules">
+      <div class="section-head">
+        <h2>功能模块拆解</h2>
+        <p class="section-note">按源码目录理解模块，比按论文名理解更稳：主包其实是 Python dispatch + Triton kernels + C++ CUDA extensions 的组合。</p>
+      </div>
+      <div class="grid cards-3">
+        <article class="panel">
+          <h3><code>sageattention/core.py</code></h3>
+          <p>
+            总控层。负责自动调度、显式后端 API、输入校验、head_dim padding、smooth_k/LSE 校正、V 量化调用和 CUDA extension 调用。
+          </p>
+        </article>
+        <article class="panel">
+          <h3><code>sageattention/quant.py</code></h3>
+          <p>
+            CUDA fused 量化封装层。包括 Q/K per-block INT8、Q per-warp INT8、V sub_mean、V per-channel FP8。
+          </p>
+        </article>
+        <article class="panel">
+          <h3><code>sageattention/triton/*</code></h3>
+          <p>
+            Triton 量化和 attention 前向。SM86 自动路径、<code>sageattn_varlen</code>、per-thread INT8 量化均依赖这里。
+          </p>
+        </article>
+        <article class="panel">
+          <h3><code>csrc/fused/*</code></h3>
+          <p>
+            fused CUDA 量化算子绑定。Python 中的 <code>_fused.quant_per_block_int8_fuse_sub_mean_cuda</code> 等接口来自这里。
+          </p>
+        </article>
+        <article class="panel">
+          <h3><code>csrc/qattn/*</code></h3>
+          <p>
+            架构专用 attention kernel。SM80 处理 INT8 QK + FP16 V，SM89/SM90 处理 INT8 QK + FP8 V。
+          </p>
+        </article>
+        <article class="panel">
+          <h3><code>sageattention3_blackwell/*</code></h3>
+          <p>
+            独立 FP4 包。包含 FP4 quantization、Blackwell kernel、CUTLASS/CuTe 相关适配和单独的 Python API。
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section id="precision">
+      <div class="section-head">
+        <h2>精度与量化策略</h2>
+        <p class="section-note">SageAttention 的关键风险不在“是否用了 online softmax”，而在 QK 与 PV 的低比特表示如何控制误差。</p>
+      </div>
+      <table aria-label="量化策略矩阵">
+        <thead>
+          <tr>
+            <th>机制</th>
+            <th>作用位置</th>
+            <th>源码行为</th>
+            <th>工程含义</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>smooth_k</code></td>
+            <td>K 量化前</td>
+            <td>沿序列维度计算 K mean；CUDA block/warp 量化可 fused subtract mean。</td>
+            <td>降低 K outlier 对 INT8 scale 的污染；开启后 <code>return_lse</code> 需要加回校正项。</td>
+          </tr>
+          <tr>
+            <td><code>per_block</code></td>
+            <td>Q/K INT8</td>
+            <td>Triton FP16 路径主要使用；scale 数量最少。</td>
+            <td>开销低但粒度粗，适合作为简单后端或变长路径。</td>
+          </tr>
+          <tr>
+            <td><code>per_warp</code></td>
+            <td>Q INT8</td>
+            <td>CUDA fused Q quant；SM120/121 自动路径强制使用。</td>
+            <td>比 per-block 精细，兼顾 scale 开销与精度。</td>
+          </tr>
+          <tr>
+            <td><code>per_thread</code></td>
+            <td>Q/K INT8</td>
+            <td>Triton kernel 为每个 lane 分组生成 scale；SM80/89/90 默认使用。</td>
+            <td>精度更细，但 scale 更多，kernel 需要匹配 scale 布局。</td>
+          </tr>
+          <tr>
+            <td><code>per_channel_fp8</code></td>
+            <td>V/PV</td>
+            <td>V 转置、padding、permute 后输出 <code>float8_e4m3fn</code> 与 FP32 scale。</td>
+            <td>把 PV 路径放到 FP8 tensor core/WGMMA；量化和布局转换开销不能忽略。</td>
+          </tr>
+          <tr>
+            <td>两级累加</td>
+            <td>PV accumulation</td>
+            <td><code>fp16+fp32</code>、<code>fp32+fp16</code>、<code>fp32+fp32</code> 等 inst buffer 变体。</td>
+            <td>为长序列与 FP8/FP16 累加缓解精度损失，是 SageAttention2++ 重要工程点。</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout warning" style="margin-top: 1rem;">
+        <p>
+          注意：README 的 TOPS 图表说明 attention kernel 速度不包含量化与 smoothing 开销。
+          因此端到端替换时，短序列、decode、小 batch 或量化开销占比高的场景，未必等同于 kernel 图上的收益。
+        </p>
+      </div>
+    </section>
+
+    <section id="comparison">
+      <div class="section-head">
+        <h2>核心技术对比</h2>
+        <p class="section-note">把精度、性能、内存、功能支持和 GPU 覆盖合并成一组复习表。SageAttention 列以当前源码为准，FA4 列按论文/生态背景理解。</p>
+      </div>
+      <div class="grid cards-2">
+        <div class="panel">
+          <h3>计算精度路线</h3>
+          <table aria-label="计算精度对比">
+            <thead>
+              <tr><th>维度</th><th>FlashAttention</th><th>SageAttention</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>QK<sup>T</sup></td>
+                <td>FP16/BF16，保持标准 attention 数学形式。</td>
+                <td>INT8 量化，使用 scale 还原分数，存在近似误差。</td>
+              </tr>
+              <tr>
+                <td>Softmax</td>
+                <td>online softmax，等价于标准 softmax。</td>
+                <td>attention kernel 内也维护 online softmax，但输入分数来自量化 QK。</td>
+              </tr>
+              <tr>
+                <td>PV</td>
+                <td>FP16/BF16；FA3/FA4 背景中还涉及 FP8 路线。</td>
+                <td>SM80/86 为 FP16 V；SM89/90/120/121 为 FP8 V；SA3 独立包为 FP4 packed Q/K/V。</td>
+              </tr>
+              <tr>
+                <td>误差来源</td>
+                <td>主要来自浮点舍入，与标准实现目标等价。</td>
+                <td>Q/K/V 低比特量化、scale 粒度、累加器精度和 smoothing 策略。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="panel">
+          <h3>内存与额外缓冲</h3>
+          <table aria-label="内存对比">
+            <thead>
+              <tr><th>维度</th><th>FlashAttention</th><th>SageAttention</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>前向显存</td>
+                <td>O(N)，不保存 N×N S/P。</td>
+                <td>同样不应物化 N×N S/P，但会新增 INT8/FP8 tensor 与 scale 缓冲。</td>
+              </tr>
+              <tr>
+                <td>训练显存</td>
+                <td>保存 LSE 等状态，反向按块重算 P。</td>
+                <td>当前主包源码没有 backward API，不能作为训练 attention 直接替换。</td>
+              </tr>
+              <tr>
+                <td>端到端开销</td>
+                <td>主要看 kernel 调度、mask/KV cache 支持和架构适配。</td>
+                <td>需要把量化、smooth_k、V 转置/padding/permute 的额外开销算进去。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <table aria-label="功能支持对比" style="margin-top: 1rem;">
+        <thead>
+          <tr>
+            <th>功能</th>
+            <th>FlashAttention / FA2/FA3</th>
+            <th>FA4 背景</th>
+            <th>当前 SageAttention 源码事实</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Backward / 训练</td>
+            <td><span class="tag ok">支持</span></td>
+            <td><span class="tag ok">论文/生态目标支持</span></td>
+            <td><span class="tag stop">主包未暴露 backward</span></td>
+          </tr>
+          <tr>
+            <td>Causal</td>
+            <td><span class="tag ok">支持</span></td>
+            <td><span class="tag ok">支持背景</span></td>
+            <td><span class="tag ok">支持</span>，但 Triton 路径中 causal 与 <code>attn_mask</code> 互斥。</td>
+          </tr>
+          <tr>
+            <td>Variable Length</td>
+            <td><span class="tag ok">支持</span></td>
+            <td><span class="tag ok">支持背景</span></td>
+            <td><span class="tag ok"><code>sageattn_varlen</code></span>，走 Triton INT8+FP16，不是 FP8 CUDA 路径。</td>
+          </tr>
+          <tr>
+            <td>GQA/MQA</td>
+            <td><span class="tag ok">支持</span></td>
+            <td><span class="tag ok">支持背景</span></td>
+            <td><span class="tag ok">支持约束</span>：<code>num_qo_heads</code> 必须可整除 <code>num_kv_heads</code>。</td>
+          </tr>
+          <tr>
+            <td>Dropout</td>
+            <td><span class="tag ok">训练内核常见支持</span></td>
+            <td><span class="tag warn">看具体版本</span></td>
+            <td><span class="tag stop">主包 API 无 dropout 参数</span></td>
+          </tr>
+          <tr>
+            <td>Sliding Window / Paged KV</td>
+            <td><span class="tag ok">推理生态成熟</span></td>
+            <td><span class="tag ok">重要方向</span></td>
+            <td><span class="tag stop">主包未见主线 API</span></td>
+          </tr>
+          <tr>
+            <td>Attention Mask</td>
+            <td><span class="tag ok">支持</span></td>
+            <td><span class="tag ok">score/mask mod 背景</span></td>
+            <td><span class="tag warn">仅 Triton FP16 显式路径有通用 <code>attn_mask</code></span></td>
+          </tr>
+          <tr>
+            <td>torch.compile</td>
+            <td><span class="tag ok">生态支持</span></td>
+            <td><span class="tag ok">custom op 背景</span></td>
+            <td><span class="tag ok">README 声明 non-cudagraphs 支持</span>，源码里 custom_op 注册 fake impl。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="decision">
+      <div class="section-head">
+        <h2>选型与踩坑</h2>
+        <p class="section-note">训练/推理、模型类型、硬件平台判断；SageAttention 的能力边界以本地源码为准，FlashAttention/FA4 作为外部生态背景。</p>
+      </div>
+      <div class="callout" style="margin-bottom: 1rem;">
+        <p>
+          快速判断：训练、复杂 mask、paged KV、decode 为主、MLA/非标准 attention，优先 FlashAttention 或框架专用内核；
+          标准 MHA/GQA、head_dim ≤ 128、视觉/视频生成或长 prompt prefill、可接受低比特量化误差，SageAttention 值得压测。
+        </p>
+      </div>
+      <div class="grid cards-2">
+        <div class="panel">
+          <h3>更适合 SageAttention 的场景</h3>
+          <p>
+            视觉/视频生成、DiT/ViT 类大矩阵 attention、长序列 prefill、对轻微量化误差可容忍的推理。README 的示例主要围绕 CogVideoX、Mochi、HunyuanVideo、LTX 等视频/图像模型，并提示不是所有模型都适合直接 monkey patch <code>F.scaled_dot_product_attention</code>。
+          </p>
+        </div>
+        <div class="panel">
+          <h3>更适合 FlashAttention/框架内核的场景</h3>
+          <p>
+            训练或需要 backward、复杂 KV cache、LLM decode、sliding window、paged KV、dropout、精度极敏感任务。当前主包源码没有暴露 backward kernel，也没有主线 paged KV cache API；这些场景不要仅凭 forward 替换做结论。
+          </p>
+        </div>
+      </div>
+
+      <div class="tabs" style="margin-top: 1rem;">
+        <div class="tab-list" role="tablist" aria-label="选型维度">
+          <button class="tab active" data-tab="train-infer" type="button">训练/推理</button>
+          <button class="tab" data-tab="model-type" type="button">模型类型</button>
+          <button class="tab" data-tab="hardware-choice" type="button">硬件平台</button>
+          <button class="tab" data-tab="decision-tree" type="button">决策树</button>
+        </div>
+        <div class="tab-panel active" id="tab-train-infer">
+          <h3>训练 vs 推理</h3>
+          <table aria-label="训练推理选型">
+            <thead>
+              <tr><th>场景</th><th>推荐</th><th>原因</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>训练</td>
+                <td>FlashAttention / 框架专用 kernel</td>
+                <td>需要 backward、dropout、复杂 mask 和稳定数值；当前 SageAttention 主包源码只暴露前向推理路径。</td>
+              </tr>
+              <tr>
+                <td>推理且精度敏感</td>
+                <td>先用 FlashAttention 做基线，再测试 SageAttention</td>
+                <td>SageAttention 有 INT8/FP8/FP4 量化误差，必须用任务指标确认。</td>
+              </tr>
+              <tr>
+                <td>推理且视觉/视频生成</td>
+                <td>SageAttention 值得优先测试</td>
+                <td>原仓库示例集中在 Diffusion/视频生成；这类任务通常标准 attention 多、计算密集、对微小 attention 误差较宽容。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="tab-panel" id="tab-model-type">
+          <h3>按模型类型判断</h3>
+          <table aria-label="模型类型选型">
+            <thead>
+              <tr><th>模型/阶段</th><th>SageAttention 判断</th><th>说明</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Diffusion / DiT / 视频生成</td>
+                <td><span class="tag ok">适合</span></td>
+                <td>标准 MHA/GQA、head_dim 常为 64/128、推理为主，仓库 README 和 examples 也主要覆盖这类模型。</td>
+              </tr>
+              <tr>
+                <td>Vision Transformer</td>
+                <td><span class="tag ok">适合压测</span></td>
+                <td>分类/检测/分割任务通常可用任务指标评估轻微量化误差，前向推理收益可能较好。</td>
+              </tr>
+              <tr>
+                <td>LLM Prefill</td>
+                <td><span class="tag warn">可测试</span></td>
+                <td>Prefill 是大矩阵 attention，compute-bound 特征更明显；但自回归模型的输出质量需要仔细评估。</td>
+              </tr>
+              <tr>
+                <td>LLM Decode</td>
+                <td><span class="tag warn">收益有限</span></td>
+                <td>Q 只有少量 token，瓶颈常在 KV 读取和调度；FlashAttention/推理框架的 split-KV、paged KV 通常更成熟。</td>
+              </tr>
+              <tr>
+                <td>MLA / DeepSeek 类 absorbed attention</td>
+                <td><span class="tag stop">不建议直接套</span></td>
+                <td>结构非标准，等效 head_dim/数据流可能不满足 SageAttention 主包限制；应使用 vLLM/SGLang 等专用 MLA kernel。</td>
+              </tr>
+              <tr>
+                <td>原生 FP8 模型</td>
+                <td><span class="tag warn">看目标</span></td>
+                <td>FlashAttention3-FP8 避免反复转换；SageAttention 需要回到 FP16/BF16 输入再量化成 INT8/FP8，可能有额外开销。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="tab-panel" id="tab-hardware-choice">
+          <h3>按硬件平台判断</h3>
+          <table aria-label="硬件平台推荐">
+            <thead>
+              <tr><th>硬件</th><th>复习结论</th><th>准确性限定</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>A100 / SM80</td>
+                <td>训练用 FA2/框架内核；推理可测 SageAttention CUDA INT8+FP16。</td>
+                <td>SageAttention 自动分支为 SM80 FP16 PV，默认 FP32 累加。</td>
+              </tr>
+              <tr>
+                <td>RTX 3090 / SM86</td>
+                <td>SageAttention 自动走 Triton INT8+FP16。</td>
+                <td>没有 FP8 PV 自动路径，功能相对简单。</td>
+              </tr>
+              <tr>
+                <td>RTX 4090 / L20 / SM89</td>
+                <td>SageAttention2++ 的典型强项：INT8 QK + FP8 PV + <code>fp32+fp16</code>。</td>
+                <td>需要 CUDA 12.4+ 构建 FP8 支持。</td>
+              </tr>
+              <tr>
+                <td>H100/H20 / SM90</td>
+                <td>Diffusion 推理可比较 SageAttention 与 FA3/FA3-FP8；训练和复杂 LLM 能力优先 FA3/FA4/框架。</td>
+                <td>SageAttention SM90 只建议 <code>fp32+fp32</code> 路径；普通 <code>fp32</code> 未实现。</td>
+              </tr>
+              <tr>
+                <td>B200/GB200 / SM100</td>
+                <td>倾向 FA4；本地 SageAttention 主包没有 SM100 自动分派。</td>
+                <td>主包 setup 有 SM100 编译标志，但公开 <code>sageattn()</code> 进入 unknown arch 抛错；SA3 本地 C++ 入口也只放行 SM120/121。</td>
+              </tr>
+              <tr>
+                <td>RTX 5090 / SM120/121</td>
+                <td>SageAttention 主包自动走 INT8+FP8 per_warp；SA3 FP4 包也面向 SM120/121。</td>
+                <td>需要 CUDA 12.8+；具体端到端收益仍要用模型实测。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="tab-panel" id="tab-decision-tree">
+          <h3>压缩版决策树</h3>
+          <pre><code>是否训练？
+  是  -> FlashAttention / 框架专用 kernel
+  否  -> 继续
+
+是否 B200/SM100？
+  是  -> FA4 或框架内核；当前本地 SageAttention 主包无 sageattn() 自动路径
+  否  -> 继续
+
+是否标准 MHA/GQA 且 head_dim <= 128？
+  否  -> FlashAttention / 模型专用内核
+  是  -> 继续
+
+是否视觉/视频生成、ViT、长 prompt prefill？
+  是  -> SageAttention 值得优先压测
+  否  -> 继续
+
+是否 decode、paged KV、sliding window、block-sparse、自定义 score/mask？
+  是  -> FlashAttention / FA4 / 推理框架内核
+  否  -> 用 FlashAttention 做基线，再比较 SageAttention 端到端质量和吞吐</code></pre>
+        </div>
+      </div>
+
+      <div class="grid cards-3" style="margin-top: 1rem;">
+        <div class="callout">
+          <p>
+            <strong>参数转发：</strong><code>sageattn()</code> 接收 <code>**kwargs</code> 但不传下去；需要改 <code>pv_accum_dtype</code> 或 <code>smooth_v</code> 时，请调用显式后端函数。
+          </p>
+        </div>
+        <div class="callout">
+          <p>
+            <strong>layout：</strong><code>HND</code> 与 <code>NHD</code> 只改变 shape 解释，不会自动重排输入；传错 layout 会让 head/seq 维度完全错位。
+          </p>
+        </div>
+        <div class="callout">
+          <p>
+            <strong>head_dim：</strong>源码只支持 padding 到 64/128；原始 head_dim 大于 128 会直接抛错。
+          </p>
+        </div>
+        <div class="callout warning">
+          <p>
+            <strong>SM100/B200：</strong>主包 setup 有 SM100 编译标志，但 <code>sageattn()</code> 没有 SM100 分派；Blackwell FP4 包的 C++ 入口又检查 SM120/121。
+            这是一处“能编译部分标志”和“公开入口可运行”并不等价的边界。
+          </p>
+        </div>
+        <div class="callout warning">
+          <p>
+            <strong>变长 smooth_k：</strong><code>sageattn_varlen()</code> 对 K mean 的注释说明它按全部 batch token 计算，不是每个序列各自计算。
+          </p>
+        </div>
+        <div class="callout danger">
+          <p>
+            <strong>causal mask：</strong>Triton FP16 路径里 causal 与 <code>attn_mask</code> 互斥；CUDA 显式路径没有通用 <code>attn_mask</code> 参数。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section id="source">
+      <div class="section-head">
+        <h2>源码走读顺序</h2>
+        <p class="section-note">按这个顺序读，能最快把“API 怎么进来、数据怎么变、kernel 怎么发射”串起来。</p>
+      </div>
+      <div class="source-list">
+        <div class="source-item">
+          <strong>1. 公共导出</strong>
+          <p><a href="https://github.com/thu-ml/SageAttention/blob/main/sageattention/__init__.py#L1">sageattention/__init__.py:1</a> 看包对外暴露哪些 API。</p>
+        </div>
+        <div class="source-item">
+          <strong>2. 自动分派</strong>
+          <p><a href="https://github.com/thu-ml/SageAttention/blob/main/sageattention/core.py#L79">core.py:79</a> 读 <code>sageattn()</code> 的参数、文档和 SM 分支。</p>
+        </div>
+        <div class="source-item">
+          <strong>3. Triton FP16 路径</strong>
+          <p><a href="https://github.com/thu-ml/SageAttention/blob/main/sageattention/core.py#L160">core.py:160</a> 看 SM86/Triton 的量化、mask 和 return_lse。</p>
+        </div>
+        <div class="source-item">
+          <strong>4. 变长路径</strong>
+          <p><a href="https://github.com/thu-ml/SageAttention/blob/main/sageattention/core.py#L334">core.py:334</a> 看 <code>sageattn_varlen()</code> 的 cu_seqlens 与 per-block 量化。</p>
+        </div>
+        <div class="source-item">
+          <strong>5. SM80 CUDA FP16 PV</strong>
+          <p><a href="https://github.com/thu-ml/SageAttention/blob/main/sageattention/core.py#L451">core.py:451</a> 看 FP16 PV 的三种累加选择。</p>
+        </div>
+        <div class="source-item">
+          <strong>6. SM89 CUDA FP8 PV</strong>
+          <p><a href="https://github.com/thu-ml/SageAttention/blob/main/sageattention/core.py#L636">core.py:636</a> 看 FP8 V 量化与两级累加。</p>
+        </div>
+        <div class="source-item">
+          <strong>7. SM90 专用路径</strong>
+          <p><a href="https://github.com/thu-ml/SageAttention/blob/main/sageattention/core.py#L829">core.py:829</a> 看 Hopper WGMMA/TMA 后端入口。</p>
+        </div>
+        <div class="source-item">
+          <strong>8. CUDA 量化封装</strong>
+          <p><a href="https://github.com/thu-ml/SageAttention/blob/main/sageattention/quant.py#L22">quant.py:22</a> 到 <a href="https://github.com/thu-ml/SageAttention/blob/main/sageattention/quant.py#L224">quant.py:224</a> 串起 INT8/FP8 准备。</p>
+        </div>
+        <div class="source-item">
+          <strong>9. fused pybind</strong>
+          <p><a href="https://github.com/thu-ml/SageAttention/blob/main/csrc/fused/pybind.cpp#L21">csrc/fused/pybind.cpp:21</a> 看 Python 调用的 fused CUDA 符号。</p>
+        </div>
+        <div class="source-item">
+          <strong>10. SM90 C++ kernel</strong>
+          <p><a href="https://github.com/thu-ml/SageAttention/blob/main/csrc/qattn/qk_int_sv_f8_cuda_sm90.cu#L126">qk_int_sv_f8_cuda_sm90.cu:126</a> 看 TMA、scale index、online softmax 状态。</p>
+        </div>
+        <div class="source-item">
+          <strong>11. 构建与 CUDA 限制</strong>
+          <p><a href="https://github.com/thu-ml/SageAttention/blob/main/setup.py#L129">setup.py:129</a> 看 CUDA 版本和架构编译条件。</p>
+        </div>
+        <div class="source-item">
+          <strong>12. SageAttention3 FP4</strong>
+          <p><a href="https://github.com/thu-ml/SageAttention/blob/main/sageattention3_blackwell/sageattn3/api.py#L75">sageattn3/api.py:75</a> 看 Blackwell FP4 预处理和量化调用。</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="accuracy">
+      <div class="section-head">
+        <h2>准确性校准</h2>
+        <p class="section-note">这一节专门把容易随时间变化、或和当前源码边界不同的表述校准成复习时更安全的说法。</p>
+      </div>
+      <table aria-label="准确性校准表">
+        <thead>
+          <tr>
+            <th>主题</th>
+            <th>复习时的安全表述</th>
+            <th>依据/边界</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>SA2/SA3 与 SM100/B200</td>
+            <td>当前本地 SageAttention 主包 <code>sageattn()</code> 没有 SM100 自动分派；SA3 Blackwell 包当前 C++ 入口检查 SM120/121。</td>
+            <td>主包 <a href="https://github.com/thu-ml/SageAttention/blob/main/sageattention/core.py#L143">core.py:143</a> 分派缺少 SM100；SA3 <a href="https://github.com/thu-ml/SageAttention/blob/main/sageattention3_blackwell/sageattn3/blackwell/api.cu#L219">api.cu:219</a> 检查 SM120/121。</td>
+          </tr>
+          <tr>
+            <td>“SageAttention 无 backward”</td>
+            <td>对当前主包源码可以这样说：公开 API 和 pybind 主要是 forward attention，没有训练 backward 替换路径。</td>
+            <td>不要把它外推成论文永远不研究训练；SA3 论文标题包含 8-bit training exploration，但本地公开入口仍是推理前向。</td>
+          </tr>
+          <tr>
+            <td>FA4 版本/PR/性能数字</td>
+            <td>作为论文和生态背景复习，不作为本 SageAttention 仓库事实。实际项目中要重新查上游 release、README、benchmark。</td>
+            <td>这类信息高度时间敏感，本文只保留技术方向：Blackwell、TMEM/UMMA、CuTe DSL、FlexAttention、block-sparse。</td>
+          </tr>
+          <tr>
+            <td>H100 上 SageAttention vs FA3-FP8</td>
+            <td>可作为 Diffusion 推理候选，但必须用目标模型端到端质量和吞吐实测。</td>
+            <td>SageAttention README 的示例和 TOPS 图强调 kernel 速度，且 TOPS 不含量化/smoothing 开销。</td>
+          </tr>
+          <tr>
+            <td>LLM Prefill/Decode</td>
+            <td>Prefill 更可能从低比特矩阵乘受益；Decode 常受 KV 读、调度和 cache 机制限制，FlashAttention/推理框架更常见。</td>
+            <td>这是工程推断，不是本 SageAttention 仓库提供的 LLM decode 专用 API。</td>
+          </tr>
+          <tr>
+            <td>直接替换 SDPA</td>
+            <td>可以快速试验，但不应当作为所有模型的最终集成方式。</td>
+            <td>README 明确提示并非所有模型都适合 <code>F.scaled_dot_product_attention = sageattn</code>，图像/视频模型建议改 Attention class。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="future">
+      <div class="section-head">
+        <h2>未来趋势</h2>
+        <p class="section-note">最后的趋势可以总结为：IO-aware、低比特量化、可编程稀疏和推理框架动态调度会继续融合。</p>
+      </div>
+      <div class="grid cards-3">
+        <article class="panel">
+          <h3>FlashAttention 方向</h3>
+          <p>
+            FA4 代表的是架构深度绑定的 exact attention 路线：利用 Blackwell 的异步 MMA、TMEM、CuTe DSL 和 FlexAttention，
+            在保持数值形式更稳定的同时扩展 block-sparse、score/mask modifier 和训练能力。
+          </p>
+        </article>
+        <article class="panel">
+          <h3>SageAttention 方向</h3>
+          <p>
+            SageAttention2/2++ 证明了 INT8 QK + FP8 PV 在推理中可以获得很强吞吐；SageAttention3 进一步探索 FP4 和训练相关问题。
+            但当前本地源码中，SA3 是独立 Blackwell FP4 包，主包和 SA3 的硬件入口边界要分开记。
+          </p>
+        </article>
+        <article class="panel">
+          <h3>推理引擎融合</h3>
+          <p>
+            对 vLLM、SGLang 这类引擎，未来更现实的路线不是单一 attention kernel 通吃，而是按 GPU、模型结构、prefill/decode 阶段、KV cache 和精度目标动态选择后端。
+          </p>
+        </article>
+      </div>
+      <div class="formula" style="margin-top: 1rem;">
+        <strong>一句话复习：</strong>
+        <pre><code>B200 / 训练 / 复杂 mask      -> FlashAttention / FA4 / 框架内核
+视觉视频推理 / 标准 MHA/GQA  -> SageAttention 值得优先压测
+LLM prefill                 -> 两者都测，关注质量和端到端吞吐
+LLM decode / paged KV       -> FlashAttention 或推理框架专用内核
+SM100 上当前本地 SageAttention -> 不要假设 sageattn() 可直接跑</code></pre>
+      </div>
+    </section>
+
+    <section id="references">
+      <div class="section-head">
+        <h2>参考文献与复习入口</h2>
+        <p class="section-note">参考文献列表，并补充源码入口。外部论文链接用于理解技术路线，源码链接用于确认当前实现。</p>
+      </div>
+      <div class="source-list">
+        <div class="source-item">
+          <strong>FlashAttention</strong>
+          <p><a href="https://arxiv.org/abs/2205.14135">Dao et al., “FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness,” NeurIPS 2022。</a></p>
+        </div>
+        <div class="source-item">
+          <strong>FlashAttention-2</strong>
+          <p><a href="https://arxiv.org/abs/2307.08691">Dao, “FlashAttention-2: Faster Attention with Better Parallelism and Work Partitioning,” ICLR 2024。</a></p>
+        </div>
+        <div class="source-item">
+          <strong>FlashAttention-3</strong>
+          <p><a href="https://arxiv.org/abs/2407.08608">Shah et al., “FlashAttention-3: Fast and Accurate Attention with Asynchrony and Low-precision,” NeurIPS 2024。</a></p>
+        </div>
+        <div class="source-item">
+          <strong>FlashAttention-4</strong>
+          <p><a href="https://arxiv.org/abs/2603.05451">Zadouri, Hoehnerbach, Shah, Liu, Thakkar, Dao, “FlashAttention-4: Algorithm and Kernel Pipelining Co-Design for Asymmetric Hardware Scaling,” 2026。</a></p>
+        </div>
+        <div class="source-item">
+          <strong>SageAttention</strong>
+          <p><a href="https://arxiv.org/abs/2410.02367">Zhang et al., “SageAttention: Accurate 8-Bit Attention for Plug-and-play Inference Acceleration,” ICLR 2025。</a></p>
+        </div>
+        <div class="source-item">
+          <strong>SageAttention2</strong>
+          <p><a href="https://arxiv.org/abs/2411.10958">Zhang et al., “Efficient Attention with Thorough Outlier Smoothing and Per-thread INT4 Quantization,” ICML 2025。</a></p>
+        </div>
+        <div class="source-item">
+          <strong>SageAttention2++</strong>
+          <p><a href="https://arxiv.org/abs/2505.21136">Zhang et al., “A More Efficient Implementation of SageAttention2,” 2025。</a></p>
+        </div>
+        <div class="source-item">
+          <strong>SageAttention3</strong>
+          <p><a href="https://arxiv.org/abs/2505.11594">Zhang et al., “Microscaling FP4 Attention for Inference and An Exploration of 8-Bit Training,” 2025。</a></p>
+        </div>
+      </div>
+    </section>
+
+    <section id="checklist">
+      <div class="section-head">
+        <h2>学习检查清单</h2>
+        <p class="section-note">读完源码后，可以用这些问题自测是否真正抓住实现骨架。</p>
+      </div>
+      <ul class="checklist">
+        <li>能说明 <code>sageattn()</code> 在 SM80/86/89/90/120/121 分别进入哪个后端。</li>
+        <li>能解释为什么 Q/K 是 INT8，而 V 在不同架构上可能是 FP16 或 FP8。</li>
+        <li>能指出 <code>smooth_k</code> 的均值减法在哪里计算、在哪里融合、为什么返回 LSE 时要校正。</li>
+        <li>能区分 <code>per_block</code>、<code>per_warp</code>、<code>per_thread</code> 的 scale 形状和工程取舍。</li>
+        <li>能解释 <code>pv_accum_dtype="fp32+fp16"</code> 为什么把 V FP8 的 <code>scale_max</code> 降到 2.25。</li>
+        <li>能识别主包 SageAttention2/2++ 与 <code>sageattention3_blackwell</code> FP4 包的边界。</li>
+        <li>能判断一个模型是否适合直接替换 <code>scaled_dot_product_attention</code>，以及何时需要改 Attention class。</li>
+        <li>能在源码中找到 CUDA 版本、架构编译、SM100 自动分派缺口和 SM120/121 FP4 检查。</li>
+        <li>能复述 FA1/FA2/FA3/FA4 的演进主线：IO-aware → 并行度/warp 分区 → WGMMA/TMA → Blackwell 深流水线/可编程稀疏。</li>
+        <li>能区分“论文/生态背景”和“当前本地源码事实”，特别是 FA4 与 SA3/SM100/SM120 的边界。</li>
+      </ul>
+    </section>
+
+    <footer class="foot">
+      <p>
+        更新日期：2026-06-1。本文基于源码 commit
+        <a href="https://github.com/thu-ml/sageattention">d1a57a546c3d395b1ffcbeecc66d81db76f3b4b5</a>
+        整理；源码后续可能变化，生产选型前建议重新核对当前分支。
+      </p>
+    </footer>
+  </main>
+
+  <script>
+    document.querySelectorAll(".tabs").forEach((tabsRoot) => {
+      const buttons = tabsRoot.querySelectorAll(".tab");
+      const panels = tabsRoot.querySelectorAll(".tab-panel");
+      buttons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const target = button.dataset.tab;
+          buttons.forEach((tab) => {
+            tab.classList.toggle("active", tab === button);
+          });
+          panels.forEach((panel) => {
+            panel.classList.toggle("active", panel.id === `tab-${target}`);
+          });
+        });
+      });
+    });
+  </script>
+</body>
+</html>
