@@ -1,0 +1,852 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DFlash 与 Gemma 4 31B-it 学习笔记</title>
+  <style>
+    :root {
+      --ink: #17201b;
+      --muted: #5b665f;
+      --line: #d9dfd9;
+      --paper: #fbfcfa;
+      --surface: #ffffff;
+      --green: #277a5c;
+      --green-soft: #e7f3ee;
+      --amber: #bd6a22;
+      --amber-soft: #fff0df;
+      --blue: #3d63b8;
+      --blue-soft: #eaf0ff;
+      --red: #b43f3f;
+      --red-soft: #fff0ef;
+      --code: #243228;
+      --shadow: 0 16px 45px rgba(23, 32, 27, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.65;
+      letter-spacing: 0;
+    }
+
+    a {
+      color: var(--blue);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border-bottom: 1px solid var(--line);
+      background: rgba(251, 252, 250, 0.92);
+      backdrop-filter: blur(14px);
+    }
+
+    .topbar-inner {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 12px 24px;
+    }
+
+    .brand {
+      font-weight: 760;
+      white-space: nowrap;
+    }
+
+    .nav {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .nav a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 32px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+    }
+
+    .nav a:hover {
+      background: var(--green-soft);
+      color: var(--green);
+    }
+
+    header {
+      border-bottom: 1px solid var(--line);
+      background:
+        linear-gradient(90deg, rgba(39, 122, 92, 0.10), transparent 42%),
+        linear-gradient(135deg, rgba(189, 106, 34, 0.10), transparent 48%),
+        var(--surface);
+    }
+
+    .hero {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 56px 24px 44px;
+    }
+
+    .kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+      color: var(--green);
+      font-size: 13px;
+      font-weight: 720;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .kicker::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    h1 {
+      max-width: 900px;
+      margin: 0;
+      font-size: clamp(34px, 5vw, 60px);
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      max-width: 860px;
+      margin: 20px 0 0;
+      color: var(--muted);
+      font-size: 18px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 28px;
+    }
+
+    .signal {
+      min-height: 120px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.78);
+      box-shadow: var(--shadow);
+    }
+
+    .signal strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+
+    .signal p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 34px 24px 70px;
+    }
+
+    section {
+      margin-top: 38px;
+    }
+
+    section:first-child {
+      margin-top: 0;
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: 28px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      line-height: 1.3;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0 0 12px;
+    }
+
+    .lead {
+      max-width: 880px;
+      color: var(--muted);
+      font-size: 17px;
+    }
+
+    .band {
+      padding: 28px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 18px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .item {
+      min-height: 100%;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .item.green {
+      border-color: #b7d9ca;
+      background: var(--green-soft);
+    }
+
+    .item.amber {
+      border-color: #efc79e;
+      background: var(--amber-soft);
+    }
+
+    .item.blue {
+      border-color: #c8d4ff;
+      background: var(--blue-soft);
+    }
+
+    .item.red {
+      border-color: #efc2c0;
+      background: var(--red-soft);
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      align-items: stretch;
+      margin-top: 18px;
+    }
+
+    .step {
+      position: relative;
+      min-height: 132px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .step::after {
+      content: "→";
+      position: absolute;
+      top: 50%;
+      right: -16px;
+      transform: translateY(-50%);
+      color: var(--green);
+      font-weight: 800;
+    }
+
+    .step:last-child::after {
+      display: none;
+    }
+
+    .num {
+      display: inline-flex;
+      width: 28px;
+      height: 28px;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 10px;
+      border-radius: 50%;
+      background: var(--green);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .step p,
+    .item p,
+    li {
+      color: var(--muted);
+    }
+
+    code {
+      padding: 2px 5px;
+      border-radius: 5px;
+      background: #eef3ee;
+      color: var(--code);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 0.92em;
+    }
+
+    pre {
+      overflow-x: auto;
+      margin: 14px 0 0;
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid #cbd5ce;
+      background: #18231d;
+      color: #edf7ef;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    pre code {
+      padding: 0;
+      background: transparent;
+      color: inherit;
+    }
+
+    .compare {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin-top: 16px;
+    }
+
+    .mask {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 4px;
+      max-width: 260px;
+      margin-top: 14px;
+    }
+
+    .cell {
+      aspect-ratio: 1;
+      border-radius: 4px;
+      background: #e3e8e3;
+      border: 1px solid #d0d8d1;
+    }
+
+    .cell.on {
+      background: var(--green);
+      border-color: var(--green);
+    }
+
+    .cell.warn {
+      background: var(--amber);
+      border-color: var(--amber);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #edf3ef;
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    ul {
+      margin: 10px 0 0;
+      padding-left: 20px;
+    }
+
+    .checklist {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .check {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .box {
+      flex: 0 0 auto;
+      width: 18px;
+      height: 18px;
+      margin-top: 4px;
+      border: 2px solid var(--green);
+      border-radius: 4px;
+      background: #fff;
+    }
+
+    .source-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .source-list a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 5px 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      text-decoration: none;
+      font-size: 13px;
+    }
+
+    footer {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 0 24px 44px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 900px) {
+      .hero-grid,
+      .grid-2,
+      .grid-3,
+      .compare,
+      .checklist {
+        grid-template-columns: 1fr;
+      }
+
+      .flow {
+        grid-template-columns: 1fr;
+      }
+
+      .step::after {
+        top: auto;
+        right: 50%;
+        bottom: -20px;
+        transform: translateX(50%) rotate(90deg);
+      }
+
+      .topbar-inner {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .nav {
+        justify-content: flex-start;
+      }
+    }
+
+    @media print {
+      .topbar {
+        position: static;
+      }
+
+      body {
+        background: #fff;
+      }
+
+      .band,
+      .signal,
+      .item,
+      .step,
+      .check {
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">DFlash × Gemma 4 31B-it</div>
+      <nav class="nav" aria-label="页面导航">
+        <a href="#map">关系图</a>
+        <a href="#gemma">Gemma 结构</a>
+        <a href="#dflash">DFlash</a>
+        <a href="#attention">Non-causal</a>
+        <a href="#musa">MUSA PR</a>
+        <a href="#review">复习</a>
+      </nav>
+    </div>
+  </div>
+
+  <header>
+    <div class="hero">
+      <p class="kicker">学习笔记</p>
+      <h1>DFlash 模型与 Gemma 4 31B-it：从结构到 MUSA 加速路径</h1>
+      <p class="subtitle">
+        这份笔记整理了今天关于 Gemma 4 31B-it、DFlash speculator、non-causal attention、
+        CUDAGraph capture，以及 MooreThreads/vllm-musa PR #52 的核心脉络。
+      </p>
+
+      <div class="hero-grid" aria-label="核心结论">
+        <article class="signal">
+          <strong>Gemma 4 31B-it 是 target / verifier</strong>
+          <p>它负责最终输出质量。DFlash 猜出来的 token 必须由它验证后才会被接受。</p>
+        </article>
+        <article class="signal">
+          <strong>DFlash 是外置 drafter</strong>
+          <p>它是单独训练和加载的 speculator，不是 Gemma 4 31B-it 权重里自带的一部分。</p>
+        </article>
+        <article class="signal">
+          <strong>Non-causal attention 是关键条件</strong>
+          <p>DFlash 并行处理一个 token block，verify/draft attention 不能只支持普通左到右 causal mask。</p>
+        </article>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="map" class="band">
+      <h2>一张关系图</h2>
+      <p class="lead">
+        DFlash 不是替换 Gemma，也不是 attention backend。它是 speculative decoding 里的 drafter，
+        在运行时接入 Gemma 4 31B-it 的解码循环。
+      </p>
+
+      <div class="flow">
+        <div class="step">
+          <span class="num">1</span>
+          <h3>用户输入</h3>
+          <p>prompt 进入 serving engine，主模型准备进行正常 autoregressive decode。</p>
+        </div>
+        <div class="step">
+          <span class="num">2</span>
+          <h3>Gemma hidden states</h3>
+          <p>Gemma 4 31B-it 提供 target hidden features，DFlash 会利用这些特征。</p>
+        </div>
+        <div class="step">
+          <span class="num">3</span>
+          <h3>DFlash 猜一块</h3>
+          <p>外置 DFlash speculator 并行预测 <code>1 + num_speculative_tokens</code> 个 query。</p>
+        </div>
+        <div class="step">
+          <span class="num">4</span>
+          <h3>Gemma 验证</h3>
+          <p>target model 并行验证候选 token，接受最长正确前缀。</p>
+        </div>
+        <div class="step">
+          <span class="num">5</span>
+          <h3>循环加速</h3>
+          <p>接受的 token 越多，单位 token 的 target forward 成本越低。</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="gemma">
+      <h2>Gemma 4 31B-it 的结构重点</h2>
+      <p class="lead">
+        在 DFlash 语境里，Gemma 4 31B-it 是高质量的大模型 verifier。理解它的 attention 结构，
+        能解释为什么 MUSA PR 需要支持 head_dim 512、mm-prefix 和 non-causal FlashAttention。
+      </p>
+
+      <div class="grid-3">
+        <article class="item green">
+          <h3>Dense instruction model</h3>
+          <p>31B-it 是 instruction-tuned dense target，不是 MoE。最终输出由它决定。</p>
+          <div class="tag-row">
+            <span class="tag">target model</span>
+            <span class="tag">verifier</span>
+          </div>
+        </article>
+        <article class="item amber">
+          <h3>Hybrid attention</h3>
+          <p>大量 local sliding-window 层，间隔插入 full/global attention 层，兼顾长上下文和效率。</p>
+          <div class="tag-row">
+            <span class="tag">sliding window</span>
+            <span class="tag">global attention</span>
+          </div>
+        </article>
+        <article class="item blue">
+          <h3>Global head_dim 512</h3>
+          <p>Gemma 4 31B 的 full/global attention 会触及 512 head dim，这影响 FlashAttention backend selection。</p>
+          <div class="tag-row">
+            <span class="tag">head_size <= 512</span>
+            <span class="tag">FLASH_ATTN</span>
+          </div>
+        </article>
+      </div>
+
+      <div class="band" style="margin-top: 18px;">
+        <h3>结构速记</h3>
+        <pre><code>Gemma 4 31B-it
+  role: target / verifier
+  shape: dense instruction-tuned model
+  attention: sliding-window layers + periodic full/global layers
+  dflash relation: provides hidden features and verifies DFlash guesses
+  important for MUSA: head_dim 512 + mm_prefix model selection + non-causal verify path</code></pre>
+      </div>
+    </section>
+
+    <section id="dflash">
+      <h2>DFlash 到底是什么</h2>
+      <div class="grid-2">
+        <article class="item">
+          <h3>它是单独的 speculator</h3>
+          <p>
+            DFlash 是外置 drafter/checkpoint，例如给 <code>google/gemma-4-31B-it</code> 配套的
+            <code>gemma-4-31B-it-speculator.dflash</code>。它不是集成在 Gemma 4 31B-it 权重里的模块。
+          </p>
+        </article>
+        <article class="item">
+          <h3>它是 block-diffusion drafter</h3>
+          <p>
+            普通 speculative decoding 常见形式是小模型顺序猜多个 token；DFlash 则是用轻量 block diffusion
+            drafter 并行猜一个 block。
+          </p>
+        </article>
+      </div>
+
+      <div class="compare">
+        <article class="item green">
+          <h3>普通自回归 decode</h3>
+          <pre><code>Gemma predicts token t
+Gemma predicts token t+1
+Gemma predicts token t+2
+...</code></pre>
+          <p>质量稳定，但每个 token 都要走主模型，吞吐受限。</p>
+        </article>
+        <article class="item amber">
+          <h3>DFlash speculative decode</h3>
+          <pre><code>DFlash guesses a block
+Gemma verifies the block
+accept correct prefix
+repeat</code></pre>
+          <p>DFlash 猜得越准，被 Gemma 一次接受的 token 越多，加速越明显。</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="attention">
+      <h2>为什么需要 non-causal attention</h2>
+      <p class="lead">
+        这是今天最重要的概念点：DFlash 的 drafter/verify block 不是普通单 token causal decode。
+        它一次处理一个并行 block，因此 attention backend 需要能处理 non-causal metadata。
+      </p>
+
+      <div class="grid-2">
+        <article class="item">
+          <h3>Causal attention</h3>
+          <p>第 i 个 query 只能看自己和左边，不能看右边。普通 decoder 生成下一个 token 时通常走这条路。</p>
+          <div class="mask" aria-label="causal mask">
+            <span class="cell on"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span>
+            <span class="cell on"></span><span class="cell on"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span>
+            <span class="cell on"></span><span class="cell on"></span><span class="cell on"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span>
+            <span class="cell on"></span><span class="cell on"></span><span class="cell on"></span><span class="cell on"></span><span class="cell"></span><span class="cell"></span>
+            <span class="cell on"></span><span class="cell on"></span><span class="cell on"></span><span class="cell on"></span><span class="cell on"></span><span class="cell"></span>
+            <span class="cell on"></span><span class="cell on"></span><span class="cell on"></span><span class="cell on"></span><span class="cell on"></span><span class="cell on"></span>
+          </div>
+        </article>
+        <article class="item">
+          <h3>Non-causal block attention</h3>
+          <p>DFlash block 里的多个 query 作为一个整体被处理，不能被限制成严格左到右的单 token decode。</p>
+          <div class="mask" aria-label="non-causal mask">
+            <span class="cell warn"></span><span class="cell warn"></span><span class="cell warn"></span><span class="cell warn"></span><span class="cell warn"></span><span class="cell warn"></span>
+            <span class="cell warn"></span><span class="cell warn"></span><span class="cell warn"></span><span class="cell warn"></span><span class="cell warn"></span><span class="cell warn"></span>
+            <span class="cell warn"></span><span class="cell warn"></span><span class="cell warn"></span><span class="cell warn"></span><span class="cell warn"></span><span class="cell warn"></span>
+            <span class="cell warn"></span><span class="cell warn"></span><span class="cell warn"></span><span class="cell warn"></span><span class="cell warn"></span><span class="cell warn"></span>
+            <span class="cell warn"></span><span class="cell warn"></span><span class="cell warn"></span><span class="cell warn"></span><span class="cell warn"></span><span class="cell warn"></span>
+            <span class="cell warn"></span><span class="cell warn"></span><span class="cell warn"></span><span class="cell warn"></span><span class="cell warn"></span><span class="cell warn"></span>
+          </div>
+        </article>
+      </div>
+
+      <div class="band" style="margin-top: 18px;">
+        <h3>代码层面的关键句</h3>
+        <pre><code># DFlash cross-attention:
+# context K/V from target hidden states
+# Q from query embeddings (bonus + mask tokens)
+
+num_query_per_req = 1 + num_speculative_tokens
+common_attn_metadata.causal = False</code></pre>
+        <p>
+          因此，MUSA 的 FlashAttention backend 如果不声明并实现 <code>supports_non_causal()</code>，
+          vLLM 要么拒绝选择它，要么可能在错误 mask 下运行。
+        </p>
+      </div>
+    </section>
+
+    <section id="musa">
+      <h2>MooreThreads/vllm-musa PR #52 做了什么</h2>
+      <p class="lead">
+        PR #52 的核心不是“新增 DFlash 算法”，而是让 vllm-musa 能在 MUSA 上正确、高效地跑
+        Gemma 4 31B-it + DFlash。
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>改动</th>
+            <th>原因</th>
+            <th>学习重点</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>DFlashProposer.dummy_run</code> 接受 <code>common_attn_metadata</code></td>
+            <td>MUSA runner 会把这个参数传给 drafter；原 dflash override 没接会 TypeError。</td>
+            <td>runtime patch 要和 runner 调用签名保持一致。</td>
+          </tr>
+          <tr>
+            <td>FULL CUDAGraph capture 默认开启</td>
+            <td>DFlash draft loop 否则会被 kernel launch overhead 卡住。</td>
+            <td>spec decode 不是只看算力，图捕获和 dispatch key 也很关键。</td>
+          </tr>
+          <tr>
+            <td>capture sizes 改成 block-aligned</td>
+            <td>DFlash 每请求 query 是 <code>1 + num_speculative_tokens</code>，例如 8 个 spec token 时 block 为 9。</td>
+            <td>常见配置是 <code>[9, 18, 36, 72]</code>，对应 BS=1/2/4/8。</td>
+          </tr>
+          <tr>
+            <td>MUSA FLASH_ATTN 支持 non-causal</td>
+            <td>DFlash verify/block attention 需要 <code>causal=False</code>。</td>
+            <td>backend capability 声明会直接影响 vLLM 的 backend selection。</td>
+          </tr>
+          <tr>
+            <td>MUSA FLASH_ATTN 支持 head_size 512</td>
+            <td>Gemma 4 31B 的 global/full attention 会用到 512 head dim。</td>
+            <td>模型结构会反向驱动 backend 能力边界。</td>
+          </tr>
+          <tr>
+            <td>处理 <code>supports_mm_prefix=True</code></td>
+            <td>Gemma 4 是 multimodal/mm-prefix 模型，文本场景也会影响 backend selection。</td>
+            <td>这里有残余风险：任意 partial 2D mask 并非完全覆盖。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>容易混淆的概念</h2>
+      <div class="grid-3">
+        <article class="item red">
+          <h3>DFlash 不是 Gemma 自带模块</h3>
+          <p>它是单独 speculator，运行时通过 serving framework 接入主模型。</p>
+        </article>
+        <article class="item blue">
+          <h3>MTP assistant 不是 DFlash</h3>
+          <p><code>gemma-4-E2B-it-assistant</code> 是 MTP drafter；DFlash 是 block-diffusion drafter。</p>
+        </article>
+        <article class="item amber">
+          <h3>Non-causal 不等于输出乱来</h3>
+          <p>DFlash 猜测阶段可以 non-causal；最终接受仍由 Gemma 4 31B-it 验证。</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="review" class="band">
+      <h2>复习清单</h2>
+      <div class="checklist">
+        <div class="check">
+          <span class="box"></span>
+          <p>能说明 Gemma 4 31B-it 是 target/verifier，而 DFlash 是外置 drafter。</p>
+        </div>
+        <div class="check">
+          <span class="box"></span>
+          <p>能解释 <code>1 + num_speculative_tokens</code> 为什么影响 CUDAGraph capture size。</p>
+        </div>
+        <div class="check">
+          <span class="box"></span>
+          <p>能画出 causal attention 和 non-causal block attention 的差别。</p>
+        </div>
+        <div class="check">
+          <span class="box"></span>
+          <p>能说出 PR #52 中 <code>supports_non_causal=True</code> 和 <code>head_size <= 512</code> 的动机。</p>
+        </div>
+        <div class="check">
+          <span class="box"></span>
+          <p>知道 E2B-it assistant 是 MTP drafter，不是 DFlash。</p>
+        </div>
+        <div class="check">
+          <span class="box"></span>
+          <p>知道 DFlash 的质量安全来自 target model verify，而不是 drafter 本身全权决定输出。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="band">
+      <h2>继续阅读</h2>
+      <p class="lead">这些链接适合按顺序读，先看 PR，再看 vLLM DFlash 源码，最后回到模型卡。</p>
+      <div class="source-list">
+        <a href="https://github.com/MooreThreads/vllm-musa/pull/52">MooreThreads/vllm-musa PR #52</a>
+        <a href="https://github.com/vllm-project/vllm/blob/main/vllm/v1/spec_decode/dflash.py">vLLM DFlashProposer</a>
+        <a href="https://huggingface.co/google/gemma-4-31B-it">google/gemma-4-31B-it</a>
+        <a href="https://huggingface.co/RedHatAI/gemma-4-31B-it-speculator.dflash">Gemma 4 31B-it DFlash speculator</a>
+        <a href="https://huggingface.co/google/gemma-4-E2B-it-assistant">Gemma 4 E2B-it MTP assistant</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>整理日期：2026-05-30。笔记聚焦概念关系与代码阅读路线，数值细节以对应 model card、PR 和 vLLM 源码为准。</p>
+  </footer>
+</body>
+</html>

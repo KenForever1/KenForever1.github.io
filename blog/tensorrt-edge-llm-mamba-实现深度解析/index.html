@@ -1,0 +1,8180 @@
+<!DOCTYPE html><html lang="zh" class="no-js"><head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="热爱编程和阅读，学无止境">
+      
+      
+        <meta name="author" content="SteveForever">
+      
+      
+        <link rel="canonical" href="https://github.com/KenForever1/blog/tensorrt-edge-llm-mamba-%E5%AE%9E%E7%8E%B0%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/">
+      
+      
+        <link rel="prev" href="../deepseek-v4-hca--csa-%E6%B7%B1%E5%BA%A6%E7%90%86%E8%A7%A3%E5%88%86%E6%9E%90/">
+      
+      
+        <link rel="next" href="../mate-%E5%AE%9E%E7%8E%B0%E8%A7%A3%E6%9E%90musa-%E5%B9%B3%E5%8F%B0%E4%B8%8A%E7%9A%84-genai-%E7%AE%97%E5%AD%90%E5%85%BC%E5%AE%B9%E5%B1%82%E4%B8%8E%E9%AB%98%E6%80%A7%E8%83%BD%E5%86%85%E6%A0%B8%E5%BA%93/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 订阅" href="../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="已更新内容的 RSS 订阅" href="../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../assets/logo.ico">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>TensorRT-Edge-LLM Mamba 实现深度解析 - KenForever1</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+      <link rel="stylesheet" href="../../css/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+    
+    
+   <meta name="baidu-site-verification" content="codeva-hJH2gPjZkn">
+
+  <link href="../../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
+            html.glightbox-open { overflow: initial; height: 100%; }
+            .gslide-title { margin-top: 0px; user-select: text; }
+            .gslide-desc { color: #666; user-select: text; }
+            .gslide-image img { background: white; }
+            .gscrollbar-fixer { padding-right: 15px; }
+            .gdesc-inner { font-size: 0.75rem; }
+            body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color); }
+            body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
+            body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
+        </style></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="green" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#mamba-在项目中的位置" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href="../.." title="KenForever1" class="md-header__button md-logo" aria-label="KenForever1" data-md-component="logo">
+      
+  <img src="../../assets/octocat.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            KenForever1
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              TensorRT-Edge-LLM Mamba 实现深度解析
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="green" data-md-color-accent="indigo" aria-label="Switch to dark mode" type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.5 2c-1.79 1.15-3 3.18-3 5.5s1.21 4.35 3.03 5.5C4.46 13 2 10.54 2 7.5A5.5 5.5 0 0 1 7.5 2m11.57 1.5 1.43 1.43L4.93 20.5 3.5 19.07zm-6.18 2.43L11.41 5 9.97 6l.42-1.7L9 3.24l1.75-.12.58-1.65L12 3.1l1.73.03-1.35 1.13zm-3.3 3.61-1.16-.73-1.12.78.34-1.32-1.09-.83 1.36-.09.45-1.29.51 1.27 1.36.03-1.05.87zM19 13.5a5.5 5.5 0 0 1-5.5 5.5c-1.22 0-2.35-.4-3.26-1.07l7.69-7.69c.67.91 1.07 2.04 1.07 3.26m-4.4 6.58 2.77-1.15-.24 3.35zm4.33-2.7 1.15-2.77 2.2 2.54zm1.15-4.96-1.14-2.78 3.34.24zM9.63 18.93l2.77 1.15-2.53 2.19z"></path></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="grey" data-md-color-accent="indigo" aria-label="Switch to light mode" type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.5 2c-1.79 1.15-3 3.18-3 5.5s1.21 4.35 3.03 5.5C4.46 13 2 10.54 2 7.5A5.5 5.5 0 0 1 7.5 2m11.57 1.5 1.43 1.43L4.93 20.5 3.5 19.07zm-6.18 2.43L11.41 5 9.97 6l.42-1.7L9 3.24l1.75-.12.58-1.65L12 3.1l1.73.03-1.35 1.13zm-3.3 3.61-1.16-.73-1.12.78.34-1.32-1.09-.83 1.36-.09.45-1.29.51 1.27 1.36.03-1.05.87zM19 13.5a5.5 5.5 0 0 1-5.5 5.5c-1.22 0-2.35-.4-3.26-1.07l7.69-7.69c.67.91 1.07 2.04 1.07 3.26m-4.4 6.58 2.77-1.15-.24 3.35zm4.33-2.7 1.15-2.77 2.2 2.54zm1.15-4.96-1.14-2.78 3.34.24zM9.63 18.93l2.77 1.15-2.53 2.19z"></path></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required="">
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix="">
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/KenForever1" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    KenForever1
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="标签" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+    
+  
+  博客
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../weeks/%E8%A7%A3%E9%94%81%E9%AB%98%E6%95%88%E5%A4%A7%E8%A7%84%E6%A8%A1%E6%A8%A1%E5%9E%8B%E8%AE%AD%E7%BB%83%EF%BC%9A%E5%BC%A0%E9%87%8F%E5%B9%B6%E8%A1%8C%28TP%29%E6%8A%80%E6%9C%AF/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  杂谈杂记
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../notes/%23%E8%B0%83%E8%AF%95%E6%8A%80%E8%83%BD%E7%AF%87/%E8%B0%83%E8%AF%95%E5%B7%A5%E5%85%B7/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  技术
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  关于我
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+                
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" hidden="">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="KenForever1" class="md-nav__button md-logo" aria-label="KenForever1" data-md-component="logo">
+      
+  <img src="../../assets/octocat.png" alt="logo">
+
+    </a>
+    KenForever1
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/KenForever1" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    KenForever1
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix="">
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" checked="">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    博客
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_1" id="__nav_1_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    博客
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_2">
+        
+          
+          <label class="md-nav__link" for="__nav_1_2" id="__nav_1_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    归档
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    归档
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../archive/2026/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2026
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../archive/2025/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2025
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../archive/2024/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2024
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_3">
+        
+          
+          <label class="md-nav__link" for="__nav_1_3" id="__nav_1_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    分类
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    分类
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/ai-notes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    C++
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/gnu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GNU
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/llm%E6%8E%A8%E7%90%86/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LLM推理
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/ai/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ai
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/course/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    course
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/cpp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    cpp
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/ebpf/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ebpf
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/git/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    git
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/http-proxy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    http proxy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/libcurl/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    libcurl
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/linux/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    linux
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/llm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    llm
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/llvm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    llvm
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/netcap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    netcap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/openai/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    openai
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/proxychains/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    proxychains
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/python/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    python
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/rust/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    rust
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/squid/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    squid
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/vim/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    vim
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    开发工具
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/%E5%BC%80%E5%8F%91%E6%8A%80%E8%83%BD/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    开发技能
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/%E6%8A%80%E6%B3%95/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    技法
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/%E6%9D%82%E8%B0%88/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    杂谈
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/%E6%BA%90%E7%A0%81%E5%AE%9E%E7%8E%B0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    源码实现
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/%E7%AE%97%E6%B3%95/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    算法
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/%E7%BC%96%E7%A8%8B/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    编程
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/%E9%98%9F%E5%88%97/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    队列
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/%E9%AB%98%E6%80%A7%E8%83%BD%E5%A4%9A%E7%BA%BF%E7%A8%8B/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    高性能多线程
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2">
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    杂谈杂记
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    杂谈杂记
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../weeks/%E8%A7%A3%E9%94%81%E9%AB%98%E6%95%88%E5%A4%A7%E8%A7%84%E6%A8%A1%E6%A8%A1%E5%9E%8B%E8%AE%AD%E7%BB%83%EF%BC%9A%E5%BC%A0%E9%87%8F%E5%B9%B6%E8%A1%8C%28TP%29%E6%8A%80%E6%9C%AF/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    解锁高效大规模模型训练：张量并行(TP)技术
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../weeks/%E8%A7%A3%E5%86%B3linux%E4%B8%8D%E8%83%BD%E8%BE%93%E5%85%A5%E6%B1%89%E5%AD%97%E4%BB%A5%E5%8F%8A%E6%B1%89%E5%AD%97%E6%98%BE%E7%A4%BA%E4%B9%B1%E7%A0%81/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    解决linux不能输入汉字以及汉字显示乱码
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../weeks/%E7%BC%96%E8%AF%91Opencv%E5%92%8CFFmpeg/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    编译Opencv和FFmpeg
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../weeks/%E5%9F%BA%E4%BA%8EDocusaurus%E6%90%AD%E5%BB%BAgithub_pages%E5%B1%95%E7%A4%BA%E9%A1%B9%E7%9B%AE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    基于Docusaurus搭建github pages展示项目
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../weeks/%E4%BB%8B%E7%BB%8D%E8%A1%A5%E7%A0%81%E7%9A%84%E4%B8%80%E7%AF%87%E5%BE%88%E5%A5%BD%E7%9A%84%E6%96%87%E7%AB%A0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    介绍补码的一篇很好的文章
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../weeks/python%E5%A6%82%E4%BD%95%E7%94%9F%E6%88%90%E8%B0%83%E7%94%A8%E5%9B%BEcall_graph/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    python调用图
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../weeks/float%E8%BD%ACstring%E7%B2%BE%E5%BA%A6%E6%8D%9F%E5%A4%B1%E9%97%AE%E9%A2%98/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Float转string精度损失问题
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../weeks/docker%E6%8B%89%E9%95%9C%E5%83%8F%E5%A4%AA%E6%85%A2%E4%BA%86/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    docker镜像加速方法
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../weeks/c%2B%2B%E5%8D%95%E6%B5%8B%E8%A6%86%E7%9B%96%E7%8E%87%E8%BF%87%E4%BD%8E/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    C++单测覆盖率过低
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../weeks/base64%E5%8E%9F%E7%90%86/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Base64原理
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../weeks/babylon%E5%B7%B4%E6%AF%94%E4%BC%A6%E7%9A%84%E5%B7%A5%E7%A8%8B%E5%B8%88/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    c++开源库和文章分享
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../weeks/SRAM%E5%92%8CDRAM/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SRAM和DRAM
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../weeks/C%2B%2B%E6%9D%A1%E4%BB%B6%E7%BC%96%E8%AF%91/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    C++条件编译
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../weeks/C%2B%2B%E5%8D%95%E6%B5%8BMock%E6%96%B9%E5%BC%8F/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    C++单测Mock方式
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../weeks/20241117-llama-cpp%E6%8F%90%E7%82%B9PR/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    给llama-cpp提交一些PR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3">
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    技术
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    技术
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1">
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    #调试技能篇
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    #调试技能篇
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E8%B0%83%E8%AF%95%E6%8A%80%E8%83%BD%E7%AF%87/%E8%B0%83%E8%AF%95%E5%B7%A5%E5%85%B7/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    调试工具
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E8%B0%83%E8%AF%95%E6%8A%80%E8%83%BD%E7%AF%87/%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    性能分析
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_3">
+        
+          
+          <label class="md-nav__link" for="__nav_3_1_3" id="__nav_3_1_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gdb
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_1_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Gdb
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E8%B0%83%E8%AF%95%E6%8A%80%E8%83%BD%E7%AF%87/gdb/use%20gdb/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use gdb
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E8%B0%83%E8%AF%95%E6%8A%80%E8%83%BD%E7%AF%87/gdb/gdb%E8%B0%83%E8%AF%95core%E6%96%87%E4%BB%B6/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gdb调试core文件
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E8%B0%83%E8%AF%95%E6%8A%80%E8%83%BD%E7%AF%87/gdb/gdb%E6%9B%B4%E5%A5%BD%E7%9A%84%E6%98%BE%E7%A4%BAc%2B%2B%20STL%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E7%9A%84%E5%80%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    gdb更好的显示c++ STL数据结构的值
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E8%B0%83%E8%AF%95%E6%8A%80%E8%83%BD%E7%AF%87/gcc%E7%89%88%E6%9C%AC%E4%BE%9D%E8%B5%96ELF%E4%BF%AE%E6%94%B9/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linux修改ELF解决glibc兼容性问题
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_5">
+        
+          
+          <label class="md-nav__link" for="__nav_3_1_5" id="__nav_3_1_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ebpf
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_1_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Ebpf
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E8%B0%83%E8%AF%95%E6%8A%80%E8%83%BD%E7%AF%87/ebpf/ebpf%20udst%E5%88%9D%E6%8E%A2--libstapsdt%E7%9A%84%E4%BD%BF%E7%94%A8/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ebpf udst初探  libstapsdt的使用
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E8%B0%83%E8%AF%95%E6%8A%80%E8%83%BD%E7%AF%87/Python%E8%B0%83%E8%AF%95%E5%B7%A5%E5%85%B7/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Python调试工具
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2">
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    #编程语言篇
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    #编程语言篇
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2_1">
+        
+          
+          <label class="md-nav__link" for="__nav_3_2_1" id="__nav_3_2_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rust
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_2_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Rust
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/Rust/%E5%9C%A8Linux%E4%B8%8A%E7%BC%96%E8%AF%91Windows%E5%B9%B3%E5%8F%B0%E7%9A%84Rust%E7%A8%8B%E5%BA%8F/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    在Linux上编译Windows平台的Rust程序
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/Rust/rust%20corse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rust corse
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/Rust/Rust%E7%AF%87/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rust篇
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/Rust/Advent_of_code_2020--%E7%99%BB%E6%9C%BA%E5%BA%A7%E4%BD%8D%E9%97%AE%E9%A2%98/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advent of code 2020 -- 登机座位问题
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2_2">
+        
+          
+          <label class="md-nav__link" for="__nav_3_2_2" id="__nav_3_2_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Python
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Python
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/Python/Python/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Python
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2_2_2">
+        
+          
+          <label class="md-nav__link" for="__nav_3_2_2_2" id="__nav_3_2_2_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PyQt技法
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_2_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    PyQt技法
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/Python/PyQt%E6%8A%80%E6%B3%95/tabWidget%20in%20pyqt5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    tabWidget in pyqt5
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/Python/PyQt%E6%8A%80%E6%B3%95/qt/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Qt
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/Python/PyQt%E6%8A%80%E6%B3%95/qt5-code-snippet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Qt5 code snippet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/Python/PyQt%E6%8A%80%E6%B3%95/pyqt%20qss%20problem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pyqt qss problem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/Python/PyQt%E6%8A%80%E6%B3%95/pyqt5-tableWidget/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    pyqt5 tableWidget
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/Python/PyQt%E6%8A%80%E6%B3%95/pyqt5-package-to-deb/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pyqt5 package to deb
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/Python/PyQt%E6%8A%80%E6%B3%95/pyqt5-eric6-pycharm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pyqt5 eric6 pycharm
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/Python/PyQt%E6%8A%80%E6%B3%95/pyqt5-add-resource-file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pyqt5 add resource file
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/Python/PyQt%E6%8A%80%E6%B3%95/pyQt%20style%20Pattern/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    pyQt style Pattern
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/Python/PyQt%E6%8A%80%E6%B3%95/TreeView%20of%20PyQt5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TreeView of PyQt5
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/Python/PyQt%E6%8A%80%E6%B3%95/QtDev/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    QtDev
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/Python/PyQt%E6%8A%80%E6%B3%95/NetworkGraph%20add%20self%20loop%20edge%20of%20PyQt5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NetworkGraph add self loop edge of PyQt5
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/Python/PyQt%E6%8A%80%E6%B3%95/Network%20Graph%20of%20PyQt5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network Graph of PyQt5
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/Kotlin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kotlin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2_4">
+        
+          
+          <label class="md-nav__link" for="__nav_3_2_4" id="__nav_3_2_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FFI跨语言调用
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    FFI跨语言调用
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/FFI%E8%B7%A8%E8%AF%AD%E8%A8%80%E8%B0%83%E7%94%A8/python%E8%B0%83%E7%94%A8c%E8%B8%A9%E5%9D%91%E8%AE%B0%E5%BD%95/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    python调用c踩坑记录
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/FFI%E8%B7%A8%E8%AF%AD%E8%A8%80%E8%B0%83%E7%94%A8/ctypes%E5%9C%B0%E5%9D%80%E4%BC%A0%E9%80%92%E6%88%AA%E6%96%AD%E9%97%AE%E9%A2%98/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ctypes地址传递截断问题
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2_5">
+        
+          
+          <label class="md-nav__link" for="__nav_3_2_5" id="__nav_3_2_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    C++
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    C++
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/C%2B%2B/%E7%BC%96%E8%AF%91ABI%E9%97%AE%E9%A2%98/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    编译ABI问题
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/C%2B%2B/%E6%A8%A1%E6%9D%BF%E5%85%83%E7%BC%96%E7%A8%8B/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    模板元编程
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/C%2B%2B/%E5%A4%9AGCC%E7%8E%AF%E5%A2%83%E4%B8%8B%E8%AE%BE%E7%BD%AE%E7%BC%96%E8%AF%91%E5%99%A8%E7%89%88%E6%9C%AC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    多GCC环境下设置编译器版本
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/C%2B%2B/std%20sort%E5%B4%A9%E6%BA%83%E8%AE%B0%E5%BD%95/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Std sort崩溃记录
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/C%2B%2B/c%2B%2B%E7%BC%96%E8%AF%91%E4%B8%AD%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93%E7%9A%84%E5%BC%95%E5%85%A5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    C++编译中第三方库的引入
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/C%2B%2B/c%2B%2B%E6%98%93%E9%94%99%E4%BB%A3%E7%A0%81%E6%9D%82%E8%AE%B0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    C++易错代码杂记
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/C%2B%2B/c%2B%2B%20macro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    C++ macro
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/C%2B%2B/Vector%E4%B8%8E%E5%B8%B8%E7%94%A8%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2%E7%A4%BA%E4%BE%8B/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vector与常用数据类型转换示例
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/C%2B%2B/RapidJSON/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RapidJSON
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/C%2B%2B/Handle%20abort%20signal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Handle abort signal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/C%2B%2B/FileIO%E7%A4%BA%E4%BE%8B/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FileIO示例
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/C%2B%2B/C%2B%2B/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    C++
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/C%2B%2B/C%2B%2B%2020%20corutine%20generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    C++ 20 corutine generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/C%2B%2B/C%2B%2B20%E4%B8%ADbarrier%E5%92%8Clatch%E6%9C%89%E4%BD%95%E4%B8%8D%E5%90%8C/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    C++20中barrier和latch有何不同
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2_5_15">
+        
+          
+          <label class="md-nav__link" for="__nav_3_2_5_15" id="__nav_3_2_5_15_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Abseil
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_2_5_15_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2_5_15">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Abseil
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/C%2B%2B/Abseil/Status%E5%AE%9E%E7%8E%B0%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Status实现源码阅读
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/C%2B%2B/Abseil/FTADLE%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FTADLE设计模式
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80%E7%AF%87/C%2B%2B/Abseil/C%2B%2B%20Tips/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    C++ Tips
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3">
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    #开发技能篇
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    #开发技能篇
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3_1">
+        
+          
+          <label class="md-nav__link" for="__nav_3_3_1" id="__nav_3_3_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    工程实践
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    工程实践
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E6%8A%80%E8%83%BD%E7%AF%87/%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/Opencv%E6%8A%80%E5%B7%A7/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Opencv技巧
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E6%8A%80%E8%83%BD%E7%AF%87/%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/FFmpeg%E6%8A%80%E5%B7%A7/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FFmpeg技巧
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E6%8A%80%E8%83%BD%E7%AF%87/%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/Docker%E6%8A%80%E5%B7%A7/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker技巧
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E6%8A%80%E8%83%BD%E7%AF%87/%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E6%96%87%E4%BB%B6%E7%AE%A1%E7%90%86%E5%99%A8%E7%9A%84%E5%89%8D%E8%BF%9B-%E5%9B%9E%E9%80%80%E6%8C%89%E9%92%AE%E9%80%BB%E8%BE%91/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    如何实现文件管理器的前进/回退按钮逻辑
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E6%8A%80%E8%83%BD%E7%AF%87/%E5%8F%8C%E6%8B%BC%E4%BD%A0%E7%94%A8%E8%BF%87%E5%90%97/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    双拼你用过吗
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3_4">
+        
+          
+          <label class="md-nav__link" for="__nav_3_3_4" id="__nav_3_3_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    博客搭建记录
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    博客搭建记录
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E6%8A%80%E8%83%BD%E7%AF%87/%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA%E8%AE%B0%E5%BD%95/how%20to%20deploy%20a%20mkdocks%20blog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How to deploy a mkdocks blog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E6%8A%80%E8%83%BD%E7%AF%87/%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA%E8%AE%B0%E5%BD%95/hexo%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA%E8%AE%B0%E5%BD%95/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    hexo博客搭建记录
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E6%8A%80%E8%83%BD%E7%AF%87/%E4%BB%98%E8%B4%B9%E8%8E%B7%E5%8F%96%E5%AF%86%E7%A0%81%E5%B9%B3%E5%8F%B0%E5%8E%9F%E7%90%86/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    付费获取密码平台原理
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E6%8A%80%E8%83%BD%E7%AF%87/windows%E4%B8%8B%E6%89%93%E5%8C%85exe%E6%96%87%E4%BB%B6%E6%8A%80%E6%B3%95/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Windows下打包exe文件技法
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E6%8A%80%E8%83%BD%E7%AF%87/blogs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blogs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E6%8A%80%E8%83%BD%E7%AF%87/QGIS%20%E4%BD%BF%E7%94%A8/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Convert pyQt UI to python
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3_9">
+        
+          
+          <label class="md-nav__link" for="__nav_3_3_9" id="__nav_3_3_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Algorithm
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_3_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Algorithm
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E6%8A%80%E8%83%BD%E7%AF%87/Algorithm/%E6%97%A0%E9%94%81%E9%98%9F%E5%88%97%E5%AE%9E%E7%8E%B0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    无锁队列实现
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E6%8A%80%E8%83%BD%E7%AF%87/Algorithm/%E5%8D%95%E8%B0%83%E9%98%9F%E5%88%97/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    单调队列
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E6%8A%80%E8%83%BD%E7%AF%87/Algorithm/%E5%89%8D%E7%BC%80%E6%A0%91/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    前缀树
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E6%8A%80%E8%83%BD%E7%AF%87/Algorithm/LRU/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LRU
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E6%8A%80%E8%83%BD%E7%AF%87/Algorithm/ExamRoom/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ExamRoom
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4">
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    #开发工具篇
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    #开发工具篇
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7%E7%AF%87/%E9%AB%98%E6%95%88%E4%BD%BF%E7%94%A8%E5%B7%A5%E5%85%B7/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    高效使用工具
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4_2">
+        
+          
+          <label class="md-nav__link" for="__nav_3_4_2" id="__nav_3_4_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    编辑器之神
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    编辑器之神
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7%E7%AF%87/%E7%BC%96%E8%BE%91%E5%99%A8%E4%B9%8B%E7%A5%9E/%E5%A6%82%E4%BD%95%E8%B0%83%E8%AF%95vimscript%E7%A8%8B%E5%BA%8F/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    如何调试vimscript程序
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7%E7%AF%87/%E7%BC%96%E8%BE%91%E5%99%A8%E4%B9%8B%E7%A5%9E/%E5%A6%82%E4%BD%95%E6%9B%B4%E6%96%B0neovim%E4%BB%A5%E5%8F%8A%E5%AE%89%E8%A3%85%E6%8C%87%E5%AE%9A%E7%89%88%E6%9C%AC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    如何更新neovim以及安装指定版本.md
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7%E7%AF%87/%E7%BC%96%E8%BE%91%E5%99%A8%E4%B9%8B%E7%A5%9E/Vim%E5%A5%87%E6%B7%AB%E6%8A%80%E5%B7%A7/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vim奇淫技巧
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7%E7%AF%87/%E7%BC%96%E8%BE%91%E5%99%A8%E4%B9%8B%E7%A5%9E/AWK/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AWK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4_3">
+        
+          
+          <label class="md-nav__link" for="__nav_3_4_3" id="__nav_3_4_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    编译大法
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_4_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    编译大法
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7%E7%AF%87/%E7%BC%96%E8%AF%91%E5%A4%A7%E6%B3%95/%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    交叉编译
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7%E7%AF%87/%E7%94%BB%E5%9B%BE%E5%B7%A5%E5%85%B7/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    画图工具
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7%E7%AF%87/markdown/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Markdown
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4_6">
+        
+          
+          <label class="md-nav__link" for="__nav_3_4_6" id="__nav_3_4_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linux提效
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_4_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Linux提效
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7%E7%AF%87/linux%E6%8F%90%E6%95%88/%E8%87%AA%E5%AE%9A%E4%B9%89Linux%E5%8F%91%E8%A1%8C%E5%8C%85/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    自定义Linux发行包
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7%E7%AF%87/linux%E6%8F%90%E6%95%88/%E7%B3%BB%E7%BB%9F%E5%90%AF%E5%8A%A8U%E7%9B%98%E5%88%B6%E4%BD%9C/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    系统启动U盘制作
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7%E7%AF%87/linux%E6%8F%90%E6%95%88/%E7%A3%81%E7%9B%98%E6%B8%85%E7%90%86%E5%B7%A5%E5%85%B7/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    磁盘清理工具
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7%E7%AF%87/linux%E6%8F%90%E6%95%88/%E5%86%85%E5%AD%98%E6%A3%80%E6%B5%8B%E5%8F%8A%E8%B0%83%E8%AF%95%E5%B7%A5%E5%85%B7/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    内存检测及调试工具
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7%E7%AF%87/linux%E6%8F%90%E6%95%88/%E4%BB%A5%E7%B3%BB%E7%BB%9F%E6%9C%8D%E5%8A%A1%E6%96%B9%E5%BC%8F%E5%90%AF%E5%8A%A8%E7%A8%8B%E5%BA%8F/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    以系统服务方式启动程序
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7%E7%AF%87/linux%E6%8F%90%E6%95%88/systemd%20use%20service/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Systemd use service
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7%E7%AF%87/linux%E6%8F%90%E6%95%88/right%20Network%20way/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    right Network way
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7%E7%AF%87/linux%E6%8F%90%E6%95%88/linux%E9%9B%B6%E6%8B%B7%E8%B4%9D%E6%8A%80%E6%9C%AF/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linux零拷贝技术
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7%E7%AF%87/linux%E6%8F%90%E6%95%88/dotfiles%20config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dotfiles config
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7%E7%AF%87/linux%E6%8F%90%E6%95%88/Utils/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Utils
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7%E7%AF%87/linux%E6%8F%90%E6%95%88/Linux%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4%E8%A1%8C%E5%B7%A5%E5%85%B7/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linux常用命令行工具
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7%E7%AF%87/linux%E6%8F%90%E6%95%88/Linux%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linux常用命令
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4_7">
+        
+          
+          <label class="md-nav__link" for="__nav_3_4_7" id="__nav_3_4_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vscode
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_4_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Vscode
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7%E7%AF%87/Vscode/Vscode%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vscode环境配置
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7%E7%AF%87/Linux%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linux开发环境配置
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7%E7%AF%87/Git/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Git
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7%E7%AF%87/Bash/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bash
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5">
+        
+          
+          <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    #AI篇
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    #AI篇
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5_1">
+        
+          
+          <label class="md-nav__link" for="__nav_3_5_1" id="__nav_3_5_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    mlir学习之旅
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_5_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    mlir学习之旅
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23AI%E7%AF%87/mlir/debug_toy_config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Debug toy config
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23AI%E7%AF%87/mlir/learn_toy4/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Learn toy4
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23AI%E7%AF%87/mlir/learn_toy3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MLIR 系列–Toy3 Rewrite Pass
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23AI%E7%AF%87/mlir/learn_toy2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MLIR初遇–Toy2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23AI%E7%AF%87/mlir/%E5%85%B3%E4%BA%8Emlir%E7%9A%84%E5%AD%A6%E4%B9%A0%E8%B5%84%E6%96%99/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    关于mlir的学习资料
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5_2">
+        
+          
+          <label class="md-nav__link" for="__nav_3_5_2" id="__nav_3_5_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    llama多少也得会点
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_5_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    llama多少也得会点
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23AI%E7%AF%87/llama/gguf%E4%BD%BF%E7%94%A8mmap%E8%BF%9B%E8%A1%8C%E9%AB%98%E6%95%88%E8%AF%BB%E5%8F%96%E5%92%8C%E4%BF%9D%E5%AD%98/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gguf使用mmap进行高效读取和保存
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5_3">
+        
+          
+          <label class="md-nav__link" for="__nav_3_5_3" id="__nav_3_5_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    lmdepoly如何实现的？
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_5_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    lmdepoly如何实现的？
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23AI%E7%AF%87/lmdeploy/%E9%80%9A%E8%BF%87lmdepoly%E5%AD%A6%E4%B9%A0Python%E4%B8%AD%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E6%B3%A8%E5%86%8C%E6%A8%A1%E5%BC%8F/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    通过lmdepoly学习Python中如何实现注册模式
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23AI%E7%AF%87/lmdeploy/Intervl2-8B%E6%A8%A1%E5%9E%8B%E7%9A%84%E9%A2%84%E5%A4%84%E7%90%86preprocess%E6%9C%89%E4%BD%95%E4%B8%8D%E5%90%8C%3F/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Intervl2 8B模型的预处理preprocess有何不同?
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5_4">
+        
+          
+          <label class="md-nav__link" for="__nav_3_5_4" id="__nav_3_5_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    triton_server是个啥？
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_5_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    triton_server是个啥？
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23AI%E7%AF%87/triton_server/tritonServer%E4%B8%AD%E7%9A%84decouple%E6%A8%A1%E5%BC%8F%E6%98%AF%E4%BB%80%E4%B9%88%3F/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Triton推理服务器中的解耦模式
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notes/%23AI%E7%AF%87/triton_server/TritonServer%E7%9A%84pythonbackend%E6%9D%82%E8%AE%B0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TritonServer的pythonbackend杂记
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    关于我
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+                
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#mamba-在项目中的位置" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mamba 在项目中的位置
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mamba-的核心思想" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mamba 的核心思想
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#python-模型侧如何表达-mamba" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python 模型侧：如何表达 Mamba
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Python 模型侧：如何表达 Mamba">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mambaconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MambaConfig
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mambamixer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MambaMixer
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#onnx-导出侧mamba-如何穿过-torchexport" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ONNX 导出侧：Mamba 如何穿过 torch.export
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ONNX 导出侧：Mamba 如何穿过 torch.export">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#trace-time-stub" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        trace-time stub
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#onnx-translation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ONNX translation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#导出后的-dtype-修正" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        导出后的 dtype 修正
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tensorrt-pluginmambaplugin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TensorRT Plugin：MambaPlugin
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="TensorRT Plugin：MambaPlugin">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#数学语义" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        数学语义
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#输入输出约定" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        输入输出约定
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dtype-与-format-限制" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dtype 与 format 限制
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build-阶段参数推导" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        build 阶段参数推导
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enqueue-执行路径" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        enqueue 执行路径
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#prefill-性能路径" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        prefill 性能路径
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#runtime-状态管理mambacachemanager" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runtime 状态管理：MambaCacheManager
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Runtime 状态管理：MambaCacheManager">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Config
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#显存布局" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        显存布局
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#为什么按-layer-分-vector-管理" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        为什么按 layer 分 vector 管理
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#清空捕获与恢复" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        清空、捕获与恢复
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hybridcachemanagerattention-与-mamba-的统一路由" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HybridCacheManager：Attention 与 Mamba 的统一路由
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mtp--speculative-decoding-下的-mamba-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MTP / speculative decoding 下的 Mamba state
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#runtime-配置如何从导出阶段传到-c" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runtime 配置如何从导出阶段传到 C++
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prefill-与-decode-的状态语义" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prefill 与 Decode 的状态语义
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Prefill 与 Decode 的状态语义">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prefill" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prefill
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#decode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decode
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#与-attention-kv-cache-的对比" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        与 Attention KV Cache 的对比
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#项目实现的设计取舍" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        项目实现的设计取舍
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="项目实现的设计取舍">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#不把-mamba-当成-attention-的变种" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        不把 Mamba 当成 Attention 的变种
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#用-hybridcachemanager-做统一门面" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        用 HybridCacheManager 做统一门面
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#python-侧保留模型语义c-侧实现性能-kernel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python 侧保留模型语义，C++ 侧实现性能 kernel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#显式-state-io" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        显式 state I/O
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dtype-保守策略" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dtype 保守策略
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#当前限制与潜在优化" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        当前限制与潜在优化
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#一句话总结" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        一句话总结
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+  <div class="md-content md-content--post" data-md-component="content">
+    <div class="md-sidebar md-sidebar--post" data-md-component="sidebar" data-md-type="navigation">
+      <div class="md-sidebar__scrollwrap">
+        <div class="md-sidebar__inner md-post">
+          <nav class="md-nav md-nav--primary">
+            <div class="md-post__back">
+              <div class="md-nav__title md-nav__container">
+                <a href="../" class="md-nav__link">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+                  <span class="md-ellipsis">
+                    回到主页
+                  </span>
+                </a>
+              </div>
+            </div>
+            
+              <div class="md-post__authors md-typeset">
+                
+                  <div class="md-profile md-post__profile">
+                    <span class="md-author md-author--long">
+                      <img src="https://raw.githubusercontent.com/KenForever1/CDN/main/logo.png" alt="KenForever1">
+                    </span>
+                    <span class="md-profile__description">
+                      <strong>
+                        
+                          KenForever1
+                        
+                      </strong>
+                      <br>
+                      Creator
+                    </span>
+                  </div>
+                
+              </div>
+            
+            <ul class="md-post__meta md-nav__list">
+              <li class="md-nav__item md-nav__item--section">
+                <div class="md-post__title">
+                  <span class="md-ellipsis">
+                    元数据
+                  </span>
+                </div>
+                <nav class="md-nav">
+                  <ul class="md-nav__list">
+                    <li class="md-nav__item">
+                      <div class="md-nav__link">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 19H5V8h14m-3-7v2H8V1H6v2H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1V1m-1 11h-5v5h5z"></path></svg>
+                        <time datetime="2026-05-10 00:00:00+00:00" class="md-ellipsis">2026年5月10日</time>
+                      </div>
+                    </li>
+                    
+                    
+                      <li class="md-nav__item">
+                        <div class="md-nav__link">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9 3v15h3V3zm3 2 4 13 3-1-4-13zM5 5v13h3V5zM3 19v2h18v-2z"></path></svg>
+                          <span class="md-ellipsis">
+                            分类于
+                            
+                              <a href="../category/llm%E6%8E%A8%E7%90%86/">LLM推理</a></span>
+                        </div>
+                      </li>
+                    
+                    
+                      
+                      <li class="md-nav__item">
+                        <div class="md-nav__link">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 0 8-8 8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8m0-18a10 10 0 0 1 10 10 10 10 0 0 1-10 10C6.47 22 2 17.5 2 12A10 10 0 0 1 12 2m.5 5v5.25l4.5 2.67-.75 1.23L11 13V7z"></path></svg>
+                          <span class="md-ellipsis">
+                            
+                              需要 9 分钟阅读时间
+                            
+                          </span>
+                        </div>
+                      </li>
+                    
+                  </ul>
+                </nav>
+              </li>
+            </ul>
+            
+          </nav>
+          
+        </div>
+      </div>
+    </div>
+    <article class="md-content__inner md-typeset">
+      
+        
+  
+
+
+
+  
+    <a href="https://github.com/KenForever1/edit/main/docs/blog/posts/mamba_deep_dive.md" title="编辑此页" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"></path></svg>
+    </a>
+  
+  
+    
+      
+    
+    <a href="https://github.com/KenForever1/raw/main/docs/blog/posts/mamba_deep_dive.md" title="查看本页的源代码" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"></path></svg>
+    </a>
+  
+
+
+  <h1>TensorRT-Edge-LLM Mamba 实现深度解析</h1>
+
+<!-- [TOC] --><p>本文结合 <code>cpp/runtime/mambaCacheManager.h</code>、<code>cpp/plugins/mamba/mambaPlugin.h</code>，以及项目中 Python 导出、ONNX custom op、TensorRT plugin、C++ Runtime cache 管理等链路，系统说明 TensorRT-Edge-LLM 中 Mamba 的设计与实现。</p>
+<!-- more -->
+
+<h2 id="mamba-在项目中的位置">Mamba 在项目中的位置<a class="headerlink" href="#mamba-在项目中的位置" title="Permanent link">¶</a></h2>
+<p>TensorRT-Edge-LLM 的主体推理链路是：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1">1</a></span>
+<span class="normal"><a href="#__codelineno-0-2">2</a></span>
+<span class="normal"><a href="#__codelineno-0-3">3</a></span>
+<span class="normal"><a href="#__codelineno-0-4">4</a></span>
+<span class="normal"><a href="#__codelineno-0-5">5</a></span>
+<span class="normal"><a href="#__codelineno-0-6">6</a></span>
+<span class="normal"><a href="#__codelineno-0-7">7</a></span>
+<span class="normal"><a href="#__codelineno-0-8">8</a></span>
+<span class="normal"><a href="#__codelineno-0-9">9</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1"></a>Checkpoint / HuggingFace config
+<a id="__codelineno-0-2" name="__codelineno-0-2"></a>        ↓
+<a id="__codelineno-0-3" name="__codelineno-0-3"></a>experimental/llm_loader 构造本地模型实现
+<a id="__codelineno-0-4" name="__codelineno-0-4"></a>        ↓
+<a id="__codelineno-0-5" name="__codelineno-0-5"></a>torch.onnx.export(dynamo=True) 导出 ONNX
+<a id="__codelineno-0-6" name="__codelineno-0-6"></a>        ↓
+<a id="__codelineno-0-7" name="__codelineno-0-7"></a>C++ Builder 将 ONNX 编译为 TensorRT engine
+<a id="__codelineno-0-8" name="__codelineno-0-8"></a>        ↓
+<a id="__codelineno-0-9" name="__codelineno-0-9"></a>C++ Runtime 执行 prefill / decode
+</code></pre></div></td></tr></tbody></table></div>
+<p>Mamba 不是独立的完整模型类型，而是作为 hybrid decoder 中的一类 layer 出现。项目里典型支持对象是 Nemotron-H / Nemotron-Omni 这类混合架构：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-1-1">1</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1"></a>Attention layer + Mamba layer + MLP layer + MoE layer
+</code></pre></div></td></tr></tbody></table></div>
+<p>其中：</p>
+<ul>
+<li>Attention layer 使用 KV cache；</li>
+<li>Mamba layer 使用 recurrent SSM state 和 causal conv state；</li>
+<li>MLP / MoE layer 通常无跨 token 状态；</li>
+<li>Runtime 通过 <code>HybridCacheManager</code> 统一路由 attention cache 和 Mamba state。</li>
+</ul>
+<p>关键文件：</p>
+<ul>
+<li><code>experimental/llm_loader/config.py</code>：解析 hybrid / Mamba 配置。</li>
+<li><code>experimental/llm_loader/models/nemotron_h/modeling_nemotron_h.py</code>：Python 侧 Mamba2 layer 建模。</li>
+<li><code>experimental/llm_loader/models/ops.py</code>：定义 <code>causal_conv1d</code>、<code>update_ssm_state</code> trace-time custom op stub。</li>
+<li><code>experimental/llm_loader/onnx/dynamo_translations.py</code>：把 custom op 翻译为 <code>trt_edgellm</code> ONNX custom op。</li>
+<li><code>cpp/plugins/mamba/mambaPlugin.{h,cpp}</code>：TensorRT plugin，实现 Mamba selective state update。</li>
+<li><code>cpp/plugins/mamba/causalConv1dPlugin.{h,cpp}</code>：TensorRT plugin，实现 causal conv1d。</li>
+<li><code>cpp/runtime/mambaCacheManager.{h,cpp}</code>：运行时管理 Mamba recurrent / conv states。</li>
+<li><code>cpp/runtime/hybridCacheManager.{h,cpp}</code>：统一管理 Attention KV cache 与 Mamba state。</li>
+<li><code>cpp/runtime/llmEngineRunner.{h,cpp}</code>：加载 engine、绑定 cache/state、执行 prefill / decode。</li>
+</ul>
+<h2 id="mamba-的核心思想">Mamba 的核心思想<a class="headerlink" href="#mamba-的核心思想" title="Permanent link">¶</a></h2>
+<p>传统 Transformer attention 依赖 KV cache：每生成一个 token，都要让当前 token attend 到历史 KV。Mamba / State Space Model 的思路不同：它把历史信息压缩进一个固定大小的 recurrent state，解码时只需要更新这个状态，而不是保存所有历史 token 的 K/V。</p>
+<p>项目中的 Mamba2 核心计算可以抽象为：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-2-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-2-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-2-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-2-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-2-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-2-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-2-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-2-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-2-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-2-10">10</a></span>
+<span class="normal"><a href="#__codelineno-2-11">11</a></span>
+<span class="normal"><a href="#__codelineno-2-12">12</a></span>
+<span class="normal"><a href="#__codelineno-2-13">13</a></span>
+<span class="normal"><a href="#__codelineno-2-14">14</a></span>
+<span class="normal"><a href="#__codelineno-2-15">15</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1"></a>输入 hidden_states
+<a id="__codelineno-2-2" name="__codelineno-2-2"></a>    ↓
+<a id="__codelineno-2-3" name="__codelineno-2-3"></a>in_proj 投影
+<a id="__codelineno-2-4" name="__codelineno-2-4"></a>    ↓
+<a id="__codelineno-2-5" name="__codelineno-2-5"></a>拆分为 gate、conv path、dt
+<a id="__codelineno-2-6" name="__codelineno-2-6"></a>    ↓
+<a id="__codelineno-2-7" name="__codelineno-2-7"></a>causal conv1d 更新局部卷积状态
+<a id="__codelineno-2-8" name="__codelineno-2-8"></a>    ↓
+<a id="__codelineno-2-9" name="__codelineno-2-9"></a>拆分出 SSM 输入 x、B、C
+<a id="__codelineno-2-10" name="__codelineno-2-10"></a>    ↓
+<a id="__codelineno-2-11" name="__codelineno-2-11"></a>selective state update 更新 SSM recurrent state
+<a id="__codelineno-2-12" name="__codelineno-2-12"></a>    ↓
+<a id="__codelineno-2-13" name="__codelineno-2-13"></a>gated RMSNorm
+<a id="__codelineno-2-14" name="__codelineno-2-14"></a>    ↓
+<a id="__codelineno-2-15" name="__codelineno-2-15"></a>out_proj 回到 hidden_size
+</code></pre></div></td></tr></tbody></table></div>
+<p>在 <code>MambaMixer.forward()</code> 中，这条路径对应：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-3-1">1</a></span>
+<span class="normal"><a href="#__codelineno-3-2">2</a></span>
+<span class="normal"><a href="#__codelineno-3-3">3</a></span>
+<span class="normal"><a href="#__codelineno-3-4">4</a></span>
+<span class="normal"><a href="#__codelineno-3-5">5</a></span>
+<span class="normal"><a href="#__codelineno-3-6">6</a></span>
+<span class="normal"><a href="#__codelineno-3-7">7</a></span>
+<span class="normal"><a href="#__codelineno-3-8">8</a></span>
+<span class="normal"><a href="#__codelineno-3-9">9</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1"></a>hidden_states
+<a id="__codelineno-3-2" name="__codelineno-3-2"></a>  -&gt; in_proj
+<a id="__codelineno-3-3" name="__codelineno-3-3"></a>  -&gt; split(gate, hidden_states_for_conv, dt)
+<a id="__codelineno-3-4" name="__codelineno-3-4"></a>  -&gt; causal_conv1d(..., conv_state)
+<a id="__codelineno-3-5" name="__codelineno-3-5"></a>  -&gt; SiLU
+<a id="__codelineno-3-6" name="__codelineno-3-6"></a>  -&gt; split(ssm_input, ssm_b, ssm_c)
+<a id="__codelineno-3-7" name="__codelineno-3-7"></a>  -&gt; update_ssm_state(..., ssm_state)
+<a id="__codelineno-3-8" name="__codelineno-3-8"></a>  -&gt; gated RMSNorm
+<a id="__codelineno-3-9" name="__codelineno-3-9"></a>  -&gt; out_proj
+</code></pre></div></td></tr></tbody></table></div>
+<p>这说明项目并不是把整个 Mamba block 写成一个大 plugin，而是拆成两个主要 runtime custom op：</p>
+<ol>
+<li><code>causal_conv1d</code>：负责局部卷积和 conv state 更新；</li>
+<li><code>update_ssm_state</code>：负责 selective SSM recurrent state 更新。</li>
+</ol>
+<p>这种拆分的好处是：</p>
+<ul>
+<li>与 Python 模型结构一致，导出更自然；</li>
+<li>TensorRT plugin 边界清晰；</li>
+<li>conv 和 SSM 可以分别优化；</li>
+<li>MTP / speculative decoding 可以分别收集中间 conv state 和 recurrent state。</li>
+</ul>
+<h2 id="python-模型侧如何表达-mamba">Python 模型侧：如何表达 Mamba<a class="headerlink" href="#python-模型侧如何表达-mamba" title="Permanent link">¶</a></h2>
+<h3 id="mambaconfig">MambaConfig<a class="headerlink" href="#mambaconfig" title="Permanent link">¶</a></h3>
+<p><code>experimental/llm_loader/config.py</code> 中的 <code>MambaConfig</code> 保存 Mamba layer 的关键超参数：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-4-1">1</a></span>
+<span class="normal"><a href="#__codelineno-4-2">2</a></span>
+<span class="normal"><a href="#__codelineno-4-3">3</a></span>
+<span class="normal"><a href="#__codelineno-4-4">4</a></span>
+<span class="normal"><a href="#__codelineno-4-5">5</a></span>
+<span class="normal"><a href="#__codelineno-4-6">6</a></span>
+<span class="normal"><a href="#__codelineno-4-7">7</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1"></a>num_heads          -&gt; mamba_num_heads
+<a id="__codelineno-4-2" name="__codelineno-4-2"></a>head_dim           -&gt; mamba_head_dim
+<a id="__codelineno-4-3" name="__codelineno-4-3"></a>ssm_state_size     -&gt; SSM state size / dstate
+<a id="__codelineno-4-4" name="__codelineno-4-4"></a>conv_dim           -&gt; causal conv channel count
+<a id="__codelineno-4-5" name="__codelineno-4-5"></a>conv_kernel        -&gt; conv1d kernel size
+<a id="__codelineno-4-6" name="__codelineno-4-6"></a>n_groups           -&gt; SSM groups
+<a id="__codelineno-4-7" name="__codelineno-4-7"></a>intermediate_size  -&gt; num_heads * head_dim
+</code></pre></div></td></tr></tbody></table></div>
+<p>这些参数后续会写入 runtime <code>config.json</code>，C++ Runtime 再据此初始化 <code>MambaCacheManager</code>。</p>
+<h3 id="mambamixer">MambaMixer<a class="headerlink" href="#mambamixer" title="Permanent link">¶</a></h3>
+<p><code>experimental/llm_loader/models/nemotron_h/modeling_nemotron_h.py</code> 的 <code>MambaMixer</code> 是项目里的 Mamba2 计算模块。</p>
+<p>其参数命名直接对齐 checkpoint key：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-5-1">1</a></span>
+<span class="normal"><a href="#__codelineno-5-2">2</a></span>
+<span class="normal"><a href="#__codelineno-5-3">3</a></span>
+<span class="normal"><a href="#__codelineno-5-4">4</a></span>
+<span class="normal"><a href="#__codelineno-5-5">5</a></span>
+<span class="normal"><a href="#__codelineno-5-6">6</a></span>
+<span class="normal"><a href="#__codelineno-5-7">7</a></span>
+<span class="normal"><a href="#__codelineno-5-8">8</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1"></a>backbone.layers.N.mixer.in_proj.weight
+<a id="__codelineno-5-2" name="__codelineno-5-2"></a>backbone.layers.N.mixer.out_proj.weight
+<a id="__codelineno-5-3" name="__codelineno-5-3"></a>backbone.layers.N.mixer.conv1d.weight
+<a id="__codelineno-5-4" name="__codelineno-5-4"></a>backbone.layers.N.mixer.conv1d.bias
+<a id="__codelineno-5-5" name="__codelineno-5-5"></a>backbone.layers.N.mixer.A_log
+<a id="__codelineno-5-6" name="__codelineno-5-6"></a>backbone.layers.N.mixer.D
+<a id="__codelineno-5-7" name="__codelineno-5-7"></a>backbone.layers.N.mixer.dt_bias
+<a id="__codelineno-5-8" name="__codelineno-5-8"></a>backbone.layers.N.mixer.norm.weight
+</code></pre></div></td></tr></tbody></table></div>
+<p><code>in_proj</code> 的输出维度为：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-6-1">1</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1"></a>d_inner + conv_dim + num_heads
+</code></pre></div></td></tr></tbody></table></div>
+<p>其中：</p>
+<ul>
+<li><code>d_inner = num_heads * head_dim</code>，用于 gate；</li>
+<li><code>conv_dim</code>，进入 causal conv1d；</li>
+<li><code>num_heads</code>，作为时间步长参数 <code>dt</code>。</li>
+</ul>
+<p>forward 中的关键 reshape：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-7-1">1</a></span>
+<span class="normal"><a href="#__codelineno-7-2">2</a></span>
+<span class="normal"><a href="#__codelineno-7-3">3</a></span>
+<span class="normal"><a href="#__codelineno-7-4">4</a></span>
+<span class="normal"><a href="#__codelineno-7-5">5</a></span>
+<span class="normal"><a href="#__codelineno-7-6">6</a></span>
+<span class="normal"><a href="#__codelineno-7-7">7</a></span>
+<span class="normal"><a href="#__codelineno-7-8">8</a></span>
+<span class="normal"><a href="#__codelineno-7-9">9</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1"></a>ssm_input: [batch, seq_len, d_inner]
+<a id="__codelineno-7-2" name="__codelineno-7-2"></a>    -&gt; [batch, seq_len, num_heads, head_dim]
+<a id="__codelineno-7-3" name="__codelineno-7-3"></a>
+<a id="__codelineno-7-4" name="__codelineno-7-4"></a>ssm_b / ssm_c:
+<a id="__codelineno-7-5" name="__codelineno-7-5"></a>    [batch, seq_len, n_groups * ssm_state_size]
+<a id="__codelineno-7-6" name="__codelineno-7-6"></a>    -&gt; [batch, seq_len, n_groups, ssm_state_size]
+<a id="__codelineno-7-7" name="__codelineno-7-7"></a>
+<a id="__codelineno-7-8" name="__codelineno-7-8"></a>ssm_state:
+<a id="__codelineno-7-9" name="__codelineno-7-9"></a>    [batch, num_heads, head_dim, ssm_state_size]
+</code></pre></div></td></tr></tbody></table></div>
+<p>这与 C++ <code>MambaPlugin</code> 的输入 shape 完全对应。</p>
+<h2 id="onnx-导出侧mamba-如何穿过-torchexport">ONNX 导出侧：Mamba 如何穿过 torch.export<a class="headerlink" href="#onnx-导出侧mamba-如何穿过-torchexport" title="Permanent link">¶</a></h2>
+<p>Mamba 中的 selective scan / state update 对标准 ONNX 来说并不友好，因此项目采用 custom op 策略。</p>
+<h3 id="trace-time-stub">trace-time stub<a class="headerlink" href="#trace-time-stub" title="Permanent link">¶</a></h3>
+<p><code>experimental/llm_loader/models/ops.py</code> 定义了两个 <code>torch.library.custom_op</code>：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-8-1">1</a></span>
+<span class="normal"><a href="#__codelineno-8-2">2</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1"></a>trt_edgellm::causal_conv1d
+<a id="__codelineno-8-2" name="__codelineno-8-2"></a>trt_edgellm::update_ssm_state
+</code></pre></div></td></tr></tbody></table></div>
+<p>它们在 Python eager / trace 阶段只返回形状和 dtype 正确的 dummy tensor：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-9-1">1</a></span>
+<span class="normal"><a href="#__codelineno-9-2">2</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1"></a>causal_conv1d -&gt; output, conv_state_out
+<a id="__codelineno-9-2" name="__codelineno-9-2"></a>update_ssm_state -&gt; output, state_out
+</code></pre></div></td></tr></tbody></table></div>
+<p>这样 <code>torch.onnx.export(dynamo=True)</code> 可以完成图捕获和 shape propagation，不需要在 Python 里实现真正的高性能 kernel。</p>
+<h3 id="onnx-translation">ONNX translation<a class="headerlink" href="#onnx-translation" title="Permanent link">¶</a></h3>
+<p><code>experimental/llm_loader/onnx/dynamo_translations.py</code> 把上述 PyTorch custom op 翻译成 ONNX custom domain：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-10-1">1</a></span>
+<span class="normal"><a href="#__codelineno-10-2">2</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1"></a>_trt_edgellm.causal_conv1d(...)
+<a id="__codelineno-10-2" name="__codelineno-10-2"></a>_trt_edgellm.update_ssm_state(...)
+</code></pre></div></td></tr></tbody></table></div>
+<p><code>update_ssm_state</code> 的 ONNX 输入大致是：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-11-1">1</a></span>
+<span class="normal"><a href="#__codelineno-11-2">2</a></span>
+<span class="normal"><a href="#__codelineno-11-3">3</a></span>
+<span class="normal"><a href="#__codelineno-11-4">4</a></span>
+<span class="normal"><a href="#__codelineno-11-5">5</a></span>
+<span class="normal"><a href="#__codelineno-11-6">6</a></span>
+<span class="normal"><a href="#__codelineno-11-7">7</a></span>
+<span class="normal"><a href="#__codelineno-11-8">8</a></span>
+<span class="normal"><a href="#__codelineno-11-9">9</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1"></a>hidden_states     [batch, seq_len, num_heads, head_dim] FP16
+<a id="__codelineno-11-2" name="__codelineno-11-2"></a>ssm_a             [num_heads] FP32
+<a id="__codelineno-11-3" name="__codelineno-11-3"></a>ssm_b             [batch, seq_len, n_groups, state_size] FP16
+<a id="__codelineno-11-4" name="__codelineno-11-4"></a>ssm_c             [batch, seq_len, n_groups, state_size] FP16
+<a id="__codelineno-11-5" name="__codelineno-11-5"></a>ssm_d             [num_heads] FP16
+<a id="__codelineno-11-6" name="__codelineno-11-6"></a>dt                [batch, seq_len, num_heads] FP16
+<a id="__codelineno-11-7" name="__codelineno-11-7"></a>dt_bias           [num_heads] FP16
+<a id="__codelineno-11-8" name="__codelineno-11-8"></a>state             [batch, num_heads, head_dim, state_size] FP16
+<a id="__codelineno-11-9" name="__codelineno-11-9"></a>context_lengths   [batch] INT32
+</code></pre></div></td></tr></tbody></table></div>
+<p>输出是：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-12-1">1</a></span>
+<span class="normal"><a href="#__codelineno-12-2">2</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1"></a>output            [batch, seq_len, num_heads, head_dim] FP16
+<a id="__codelineno-12-2" name="__codelineno-12-2"></a>state_out         [batch, num_heads, head_dim, state_size] FP16
+</code></pre></div></td></tr></tbody></table></div>
+<h3 id="导出后的-dtype-修正">导出后的 dtype 修正<a class="headerlink" href="#导出后的-dtype-修正" title="Permanent link">¶</a></h3>
+<p><code>experimental/llm_loader/onnx/export.py</code> 里有一段专门处理 plugin FP32 输入的逻辑：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-13-1">1</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1"></a>Mamba2 update_ssm_state: input[1] = ssm_A must stay FP32
+</code></pre></div></td></tr></tbody></table></div>
+<p>也就是说，虽然多数权重/激活以 FP16 运行，但 <code>ssm_A</code> 被要求保持 FP32。这是因为 SSM 离散化中 <code>exp(A * dt)</code> 对数值稳定性更敏感，项目通过 ONNX initializer dtype fixup 保证 TensorRT plugin 获得 FP32 的 <code>A</code>。</p>
+<h2 id="tensorrt-pluginmambaplugin">TensorRT Plugin：<code>MambaPlugin</code><a class="headerlink" href="#tensorrt-pluginmambaplugin" title="Permanent link">¶</a></h2>
+<p><code>cpp/plugins/mamba/mambaPlugin.h</code> 中的 <code>MambaPlugin</code> 是 <code>update_ssm_state</code> 的 TensorRT plugin。它注册为：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-14-1">1</a></span>
+<span class="normal"><a href="#__codelineno-14-2">2</a></span>
+<span class="normal"><a href="#__codelineno-14-3">3</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1"></a>plugin name: update_ssm_state
+<a id="__codelineno-14-2" name="__codelineno-14-2"></a>domain: trt_edgellm
+<a id="__codelineno-14-3" name="__codelineno-14-3"></a>version: 1
+</code></pre></div></td></tr></tbody></table></div>
+<h3 id="数学语义">数学语义<a class="headerlink" href="#数学语义" title="Permanent link">¶</a></h3>
+<p>文件注释给出的核心公式是：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-15-1">1</a></span>
+<span class="normal"><a href="#__codelineno-15-2">2</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1"></a>new_state = state * exp(A * dt) + B * dt * x
+<a id="__codelineno-15-2" name="__codelineno-15-2"></a>output    = sum_i(new_state_i * C_i) + D * x
+</code></pre></div></td></tr></tbody></table></div>
+<p>含义：</p>
+<ul>
+<li><code>state</code>：历史压缩状态；</li>
+<li><code>A</code>：状态转移参数；</li>
+<li><code>dt</code>：动态时间步长；</li>
+<li><code>B</code>：输入写入 state 的系数；</li>
+<li><code>C</code>：从 state 读出 output 的系数；</li>
+<li><code>D</code>：skip connection / direct term；</li>
+<li><code>x</code>：当前输入。</li>
+</ul>
+<p>这个 plugin 只做 selective state update。SiLU gate / gated RMSNorm 在 ONNX 图中由其他算子表达，不在该 plugin 内部处理。</p>
+<h3 id="输入输出约定">输入输出约定<a class="headerlink" href="#输入输出约定" title="Permanent link">¶</a></h3>
+<p><code>MambaPlugin</code> 的输入顺序在 <code>mambaPlugin.cpp</code> 中固定：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-16-1">1</a></span>
+<span class="normal"><a href="#__codelineno-16-2">2</a></span>
+<span class="normal"><a href="#__codelineno-16-3">3</a></span>
+<span class="normal"><a href="#__codelineno-16-4">4</a></span>
+<span class="normal"><a href="#__codelineno-16-5">5</a></span>
+<span class="normal"><a href="#__codelineno-16-6">6</a></span>
+<span class="normal"><a href="#__codelineno-16-7">7</a></span>
+<span class="normal"><a href="#__codelineno-16-8">8</a></span>
+<span class="normal"><a href="#__codelineno-16-9">9</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1"></a>[0] x                [batch, (seq_len,) nheads, dim] FP16
+<a id="__codelineno-16-2" name="__codelineno-16-2"></a>[1] A                [nheads] FP32
+<a id="__codelineno-16-3" name="__codelineno-16-3"></a>[2] B                [batch, (seq_len,) ngroups, dstate] FP16
+<a id="__codelineno-16-4" name="__codelineno-16-4"></a>[3] C                [batch, (seq_len,) ngroups, dstate] FP16
+<a id="__codelineno-16-5" name="__codelineno-16-5"></a>[4] D                [nheads] FP16
+<a id="__codelineno-16-6" name="__codelineno-16-6"></a>[5] dt               [batch, (seq_len,) nheads] FP16
+<a id="__codelineno-16-7" name="__codelineno-16-7"></a>[6] dt_bias          [nheads] FP16
+<a id="__codelineno-16-8" name="__codelineno-16-8"></a>[7] state            [batch, nheads, dim, dstate] FP16
+<a id="__codelineno-16-9" name="__codelineno-16-9"></a>[8] context_lengths  [batch] INT32
+</code></pre></div></td></tr></tbody></table></div>
+<p>输出：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-17-1">1</a></span>
+<span class="normal"><a href="#__codelineno-17-2">2</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1"></a>[0] output           same shape as x
+<a id="__codelineno-17-2" name="__codelineno-17-2"></a>[1] state_out        same shape as state
+</code></pre></div></td></tr></tbody></table></div>
+<p>注意 <code>x</code> 支持两种形态：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-18-1">1</a></span>
+<span class="normal"><a href="#__codelineno-18-2">2</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1"></a>Decode:  [batch, nheads, dim]
+<a id="__codelineno-18-2" name="__codelineno-18-2"></a>Prefill: [batch, seq_len, nheads, dim]
+</code></pre></div></td></tr></tbody></table></div>
+<p>这对应 runtime 的双阶段执行：</p>
+<ul>
+<li>decode 阶段一次处理一个 token；</li>
+<li>prefill 阶段处理一段 prompt。</li>
+</ul>
+<h3 id="dtype-与-format-限制">dtype 与 format 限制<a class="headerlink" href="#dtype-与-format-限制" title="Permanent link">¶</a></h3>
+<p><code>supportsFormatCombination()</code> 中限制：</p>
+<ul>
+<li>主要数据输入为 FP16；</li>
+<li><code>A</code> 为 FP32；</li>
+<li><code>context_lengths</code> 为 INT32；</li>
+<li>tensor format 为 linear。</li>
+</ul>
+<p>这体现了一个明确取舍：</p>
+<ul>
+<li>大部分数据走 FP16，提高吞吐和降低显存；</li>
+<li>对敏感的状态转移参数 <code>A</code> 保留 FP32，提升数值稳定性；</li>
+<li>plugin 接口保持简单，便于 TensorRT shape 推理和 kernel 调度。</li>
+</ul>
+<h3 id="build-阶段参数推导">build 阶段参数推导<a class="headerlink" href="#build-阶段参数推导" title="Permanent link">¶</a></h3>
+<p><code>configurePlugin()</code> 会从输入 shape 推导：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-19-1">1</a></span>
+<span class="normal"><a href="#__codelineno-19-2">2</a></span>
+<span class="normal"><a href="#__codelineno-19-3">3</a></span>
+<span class="normal"><a href="#__codelineno-19-4">4</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1"></a>dim      &lt;- x 最后一维
+<a id="__codelineno-19-2" name="__codelineno-19-2"></a>nheads   &lt;- x 倒数第二维
+<a id="__codelineno-19-3" name="__codelineno-19-3"></a>dstate   &lt;- B 最后一维
+<a id="__codelineno-19-4" name="__codelineno-19-4"></a>ngroups  &lt;- B 倒数第二维
+</code></pre></div></td></tr></tbody></table></div>
+<p>如果 ONNX node 没显式提供这些属性，build 阶段也可以从 profile shape 中得到。序列化时则通过 <code>getFieldsToSerialize()</code> 保存：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-20-1">1</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1"></a>dim, dstate, nheads, ngroups, dt_softplus
+</code></pre></div></td></tr></tbody></table></div>
+<p>这样 engine 反序列化后 runtime 不需要重新猜测这些结构参数。</p>
+<h3 id="enqueue-执行路径">enqueue 执行路径<a class="headerlink" href="#enqueue-执行路径" title="Permanent link">¶</a></h3>
+<p><code>enqueue()</code> 的关键步骤：</p>
+<ol>
+<li>读取 batch、seq_len、shape；</li>
+<li>将输入 state copy 到输出 state；</li>
+<li>把 TensorRT raw pointer 包成项目内部 <code>rt::Tensor</code> view；</li>
+<li>根据 <code>x</code> 是否有 seq_len 维度选择 prefill 或 decode kernel；</li>
+<li>调用底层 CUDA kernel：</li>
+<li><code>invokeSelectiveStateUpdate()</code>：decode / 单步；</li>
+<li><code>invokeSelectiveStateUpdatePrefill()</code>：prefill / 多步；</li>
+<li>若启用 <code>CUTE_DSL_SSD_ENABLED</code> 且满足条件，可走 CuTe DSL chunked SSD path。</li>
+</ol>
+<p>这里有一个重要实现细节：plugin 先把 input state copy 到 output state，然后 kernel 在 output state 上原地更新。这样 TensorRT 图语义仍是函数式的：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-21-1">1</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1"></a>state_in -&gt; state_out
+</code></pre></div></td></tr></tbody></table></div>
+<p>但 kernel 内部可以用 in-place 更新减少额外临时 buffer。</p>
+<h3 id="prefill-性能路径">prefill 性能路径<a class="headerlink" href="#prefill-性能路径" title="Permanent link">¶</a></h3>
+<p><code>mambaPlugin.h</code> 注释指出：当 <code>seq_len &gt; 1</code> 时，当前默认实现会在 plugin 内部循环调用单步 kernel：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-22-1">1</a></span>
+<span class="normal"><a href="#__codelineno-22-2">2</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1"></a>for t in seq_len:
+<a id="__codelineno-22-2" name="__codelineno-22-2"></a>    update state
+</code></pre></div></td></tr></tbody></table></div>
+<p>这对 decode 最优，因为 decode 本来就是 <code>seq_len=1</code>。但对长 prompt prefill，串行 step loop 会比并行 scan 慢。</p>
+<p>项目中已经预留了 CuTe DSL SSD 优化路径：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-23-1">1</a></span>
+<span class="normal"><a href="#__codelineno-23-2">2</a></span>
+<span class="normal"><a href="#__codelineno-23-3">3</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1"></a>CUTE_DSL_SSD_ENABLED
+<a id="__codelineno-23-2" name="__codelineno-23-2"></a>CuteDslSSDRunner::canImplement(...)
+<a id="__codelineno-23-3" name="__codelineno-23-3"></a>seqLen &gt;= 128
+</code></pre></div></td></tr></tbody></table></div>
+<p>满足条件时可以走 chunked SSD prefill kernel，以降低长序列 prefill 的串行开销。当前 plugin creator 仍对 <code>chunk_size &gt; 1</code> 做限制，说明通用 chunk scan 支持还在演进中。</p>
+<h2 id="runtime-状态管理mambacachemanager">Runtime 状态管理：<code>MambaCacheManager</code><a class="headerlink" href="#runtime-状态管理mambacachemanager" title="Permanent link">¶</a></h2>
+<p>Attention 的历史状态是 KV cache；Mamba 的历史状态是两类 state：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-24-1">1</a></span>
+<span class="normal"><a href="#__codelineno-24-2">2</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1"></a>recurrent state: [maxBatchSize, recurrentStateNumHeads, recurrentStateHeadDim, recurrentStateSize]
+<a id="__codelineno-24-2" name="__codelineno-24-2"></a>conv state:      [maxBatchSize, convDim, convKernel]
+</code></pre></div></td></tr></tbody></table></div>
+<p><code>cpp/runtime/mambaCacheManager.h</code> 的 <code>MambaCacheManager</code> 就是专门管理这些 per-layer state 的组件。</p>
+<h3 id="config">Config<a class="headerlink" href="#config" title="Permanent link">¶</a></h3>
+<p><code>MambaCacheManager::Config</code> 包含：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-25-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-25-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-25-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-25-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-25-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-25-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-25-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-25-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-25-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-25-10">10</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1"></a>numRecurrentLayers
+<a id="__codelineno-25-2" name="__codelineno-25-2"></a>maxBatchSize
+<a id="__codelineno-25-3" name="__codelineno-25-3"></a>recurrentStateNumHeads
+<a id="__codelineno-25-4" name="__codelineno-25-4"></a>recurrentStateHeadDim
+<a id="__codelineno-25-5" name="__codelineno-25-5"></a>recurrentStateSize
+<a id="__codelineno-25-6" name="__codelineno-25-6"></a>convDim
+<a id="__codelineno-25-7" name="__codelineno-25-7"></a>convKernel
+<a id="__codelineno-25-8" name="__codelineno-25-8"></a>maxIntermediateSeqLen
+<a id="__codelineno-25-9" name="__codelineno-25-9"></a>recurrentStateType
+<a id="__codelineno-25-10" name="__codelineno-25-10"></a>convStateType
+</code></pre></div></td></tr></tbody></table></div>
+<p>其中：</p>
+<ul>
+<li><code>numRecurrentLayers == 0</code> 时 manager 是 no-op，不分配显存；</li>
+<li><code>maxIntermediateSeqLen &gt; 0</code> 表示启用 MTP intermediate state buffer；</li>
+<li>dtype 默认是 FP16。</li>
+</ul>
+<h3 id="显存布局">显存布局<a class="headerlink" href="#显存布局" title="Permanent link">¶</a></h3>
+<p>构造函数中，每个 Mamba layer 分配两块主状态：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-26-1">1</a></span>
+<span class="normal"><a href="#__codelineno-26-2">2</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1"></a>mRecurrentStates[layer]
+<a id="__codelineno-26-2" name="__codelineno-26-2"></a>mConvStates[layer]
+</code></pre></div></td></tr></tbody></table></div>
+<p>shape 分别是：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-27-1">1</a></span>
+<span class="normal"><a href="#__codelineno-27-2">2</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1"></a>recurrent: [maxBatchSize, numHeads, headDim, stateSize]
+<a id="__codelineno-27-2" name="__codelineno-27-2"></a>conv:      [maxBatchSize, convDim, convKernel]
+</code></pre></div></td></tr></tbody></table></div>
+<p>分配后立即 <code>cudaMemsetAsync(..., 0)</code> 清零。这样每个 batch slot 的初始历史状态为空，符合新请求的语义。</p>
+<h3 id="为什么按-layer-分-vector-管理">为什么按 layer 分 vector 管理<a class="headerlink" href="#为什么按-layer-分-vector-管理" title="Permanent link">¶</a></h3>
+<p><code>mRecurrentStates</code> 和 <code>mConvStates</code> 是 <code>std::vector&lt;rt::Tensor&gt;</code>，每层一份 tensor。这与 ONNX / TensorRT engine 的 binding 方式一致：每个 recurrent layer 在 graph 中有自己的 state input/output。</p>
+<p>这样做的优点：</p>
+<ul>
+<li>绑定 engine input/output 简单；</li>
+<li>每层 shape 相同但生命周期独立；</li>
+<li>与 <code>HybridCacheManager</code> 的 absolute-layer routing 容易对应；</li>
+<li>prompt cache capture / restore 可以按层操作。</li>
+</ul>
+<p>缺点是：</p>
+<ul>
+<li>layer 数较多时会有多个 Tensor 对象；</li>
+<li>若要做极致显存连续化，还可以进一步将所有 layer state pack 到一个大 buffer 中。但当前设计更清晰，且便于 TensorRT binding。</li>
+</ul>
+<h3 id="清空捕获与恢复">清空、捕获与恢复<a class="headerlink" href="#清空捕获与恢复" title="Permanent link">¶</a></h3>
+<p><code>clearStates()</code> 清零所有 recurrent 和 conv state。注释说明它会在 warmup inference 后、CUDA graph capture 前调用，确保 capture 的起始状态干净。</p>
+<p><code>captureRecurrentStates()</code> 和 <code>captureConvStates()</code> 会把某个 batch slot 的状态复制到新 tensor 中，用于 system prompt cache：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-28-1">1</a></span>
+<span class="normal"><a href="#__codelineno-28-2">2</a></span>
+<span class="normal"><a href="#__codelineno-28-3">3</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1"></a>batch slot N 的 Mamba states
+<a id="__codelineno-28-2" name="__codelineno-28-2"></a>        ↓
+<a id="__codelineno-28-3" name="__codelineno-28-3"></a>保存为 shape [1, ...] 的 device tensors
+</code></pre></div></td></tr></tbody></table></div>
+<p>这与 Attention KV cache 的 system prompt cache 是同一类需求：如果系统提示词相同，可以复用已经计算出的历史状态。</p>
+<p>对 Attention 来说复用 KV；对 Mamba 来说复用 recurrent / conv state。</p>
+<h2 id="hybridcachemanagerattention-与-mamba-的统一路由">HybridCacheManager：Attention 与 Mamba 的统一路由<a class="headerlink" href="#hybridcachemanagerattention-与-mamba-的统一路由" title="Permanent link">¶</a></h2>
+<p><code>cpp/runtime/hybridCacheManager.h</code> 体现了项目对 hybrid model 的核心抽象：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-29-1">1</a></span>
+<span class="normal"><a href="#__codelineno-29-2">2</a></span>
+<span class="normal"><a href="#__codelineno-29-3">3</a></span>
+<span class="normal"><a href="#__codelineno-29-4">4</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1"></a>absolute decoder layer index
+<a id="__codelineno-29-2" name="__codelineno-29-2"></a>        ↓
+<a id="__codelineno-29-3" name="__codelineno-29-3"></a>LayerType::kAttention -&gt; KVCacheManager
+<a id="__codelineno-29-4" name="__codelineno-29-4"></a>LayerType::kMamba     -&gt; MambaCacheManager
+</code></pre></div></td></tr></tbody></table></div>
+<p><code>HybridCacheManager::Config</code> 中有：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-30-1">1</a></span>
+<span class="normal"><a href="#__codelineno-30-2">2</a></span>
+<span class="normal"><a href="#__codelineno-30-3">3</a></span>
+<span class="normal"><a href="#__codelineno-30-4">4</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1"></a>layerTypes
+<a id="__codelineno-30-2" name="__codelineno-30-2"></a>kvConfig
+<a id="__codelineno-30-3" name="__codelineno-30-3"></a>mambaConfig
+<a id="__codelineno-30-4" name="__codelineno-30-4"></a>maxBatchSize
+</code></pre></div></td></tr></tbody></table></div>
+<p>这使 runtime 不需要假设模型是纯 attention，也不需要把 Mamba 当成特殊 case 到处散落。上层只按 layer index 请求状态：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-31-1">1</a></span>
+<span class="normal"><a href="#__codelineno-31-2">2</a></span>
+<span class="normal"><a href="#__codelineno-31-3">3</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1"></a>getCombinedKVCache(absLayerIdx)
+<a id="__codelineno-31-2" name="__codelineno-31-2"></a>getRecurrentState(absLayerIdx)
+<a id="__codelineno-31-3" name="__codelineno-31-3"></a>getConvState(absLayerIdx)
+</code></pre></div></td></tr></tbody></table></div>
+<p>实际由 <code>HybridCacheManager</code> 进行 absolute index 到 local index 的映射。</p>
+<p>这种设计对扩展非常关键：</p>
+<ul>
+<li>pure Transformer：<code>numRecurrentLayers = 0</code>，Mamba manager no-op；</li>
+<li>hybrid Mamba：attention layer 和 Mamba layer 混排；</li>
+<li>GatedDeltaNet：也可复用 recurrent-state 管理框架；</li>
+<li>future linear attention：可以继续纳入类似 routing 结构。</li>
+</ul>
+<h2 id="mtp--speculative-decoding-下的-mamba-state">MTP / speculative decoding 下的 Mamba state<a class="headerlink" href="#mtp--speculative-decoding-下的-mamba-state" title="Permanent link">¶</a></h2>
+<p><code>MambaCacheManager</code> 里还有 intermediate states：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-32-1">1</a></span>
+<span class="normal"><a href="#__codelineno-32-2">2</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1"></a>mIntermediateRecurrentStates
+<a id="__codelineno-32-2" name="__codelineno-32-2"></a>mIntermediateConvStates
+</code></pre></div></td></tr></tbody></table></div>
+<p>shape：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-33-1">1</a></span>
+<span class="normal"><a href="#__codelineno-33-2">2</a></span>
+<span class="normal"><a href="#__codelineno-33-3">3</a></span>
+<span class="normal"><a href="#__codelineno-33-4">4</a></span>
+<span class="normal"><a href="#__codelineno-33-5">5</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1"></a>intermediate recurrent:
+<a id="__codelineno-33-2" name="__codelineno-33-2"></a>[maxBatchSize, maxIntermediateSeqLen, numHeads, headDim, stateSize]
+<a id="__codelineno-33-3" name="__codelineno-33-3"></a>
+<a id="__codelineno-33-4" name="__codelineno-33-4"></a>intermediate conv:
+<a id="__codelineno-33-5" name="__codelineno-33-5"></a>[maxBatchSize, maxIntermediateSeqLen, convDim, convKernel]
+</code></pre></div></td></tr></tbody></table></div>
+<p>它们用于 MTP / speculative decoding 场景：一次验证多个候选 token 时，每个候选 token 都可能产生一份中间 recurrent / conv state。最终只有被接受的 token 对应的 state 应该进入主 state pool。</p>
+<p>流程可以理解为：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-34-1">1</a></span>
+<span class="normal"><a href="#__codelineno-34-2">2</a></span>
+<span class="normal"><a href="#__codelineno-34-3">3</a></span>
+<span class="normal"><a href="#__codelineno-34-4">4</a></span>
+<span class="normal"><a href="#__codelineno-34-5">5</a></span>
+<span class="normal"><a href="#__codelineno-34-6">6</a></span>
+<span class="normal"><a href="#__codelineno-34-7">7</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1"></a>base verify tree / MTP verify
+<a id="__codelineno-34-2" name="__codelineno-34-2"></a>        ↓
+<a id="__codelineno-34-3" name="__codelineno-34-3"></a>每个候选位置产生 intermediate Mamba states
+<a id="__codelineno-34-4" name="__codelineno-34-4"></a>        ↓
+<a id="__codelineno-34-5" name="__codelineno-34-5"></a>acceptLengths 决定每个 batch 接受多少 token
+<a id="__codelineno-34-6" name="__codelineno-34-6"></a>        ↓
+<a id="__codelineno-34-7" name="__codelineno-34-7"></a>scatterMtpStates() 将被接受位置的 state 写回主 state
+</code></pre></div></td></tr></tbody></table></div>
+<p><code>scatterMtpStates()</code> 调用：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-35-1">1</a></span>
+<span class="normal"><a href="#__codelineno-35-2">2</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1"></a>mtpScatterRecurrentStates(...)
+<a id="__codelineno-35-2" name="__codelineno-35-2"></a>mtpScatterConvStates(...)
+</code></pre></div></td></tr></tbody></table></div>
+<p>这说明项目在 speculative decoding 中不只处理 Attention KV cache，也完整处理 Mamba recurrent / conv state 的接受与回滚问题。</p>
+<p>这是 hybrid 架构里非常关键的一点：</p>
+<ul>
+<li>Attention speculative verify 后要更新 KV；</li>
+<li>Mamba speculative verify 后要更新 recurrent state 和 conv state；</li>
+<li>两者必须根据同一组 <code>acceptLengths</code> 保持一致。</li>
+</ul>
+<p>否则模型后续 decode 的历史状态会错位。</p>
+<h2 id="runtime-配置如何从导出阶段传到-c">Runtime 配置如何从导出阶段传到 C++<a class="headerlink" href="#runtime-配置如何从导出阶段传到-c" title="Permanent link">¶</a></h2>
+<p><code>experimental/llm_loader/checkpoint/checkpoint_utils.py</code> 会把 hybrid 信息写到 runtime <code>config.json</code>：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">JSON</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-36-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-36-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-36-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-36-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-36-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-36-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-36-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-36-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-36-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-36-10">10</a></span>
+<span class="normal"><a href="#__codelineno-36-11">11</a></span>
+<span class="normal"><a href="#__codelineno-36-12">12</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-36-1" name="__codelineno-36-1"></a><span class="p">{</span>
+<a id="__codelineno-36-2" name="__codelineno-36-2"></a><span class="w">  </span><span class="nt">"model_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"hybrid_mamba"</span><span class="p">,</span>
+<a id="__codelineno-36-3" name="__codelineno-36-3"></a><span class="w">  </span><span class="nt">"num_linear_attn_layers"</span><span class="p">:</span><span class="w"> </span><span class="err">...</span><span class="p">,</span>
+<a id="__codelineno-36-4" name="__codelineno-36-4"></a><span class="w">  </span><span class="nt">"num_attention_layers"</span><span class="p">:</span><span class="w"> </span><span class="err">...</span><span class="p">,</span>
+<a id="__codelineno-36-5" name="__codelineno-36-5"></a><span class="w">  </span><span class="nt">"recurrent_state_num_heads"</span><span class="p">:</span><span class="w"> </span><span class="err">...</span><span class="p">,</span>
+<a id="__codelineno-36-6" name="__codelineno-36-6"></a><span class="w">  </span><span class="nt">"recurrent_state_head_dim"</span><span class="p">:</span><span class="w"> </span><span class="err">...</span><span class="p">,</span>
+<a id="__codelineno-36-7" name="__codelineno-36-7"></a><span class="w">  </span><span class="nt">"recurrent_state_size"</span><span class="p">:</span><span class="w"> </span><span class="err">...</span><span class="p">,</span>
+<a id="__codelineno-36-8" name="__codelineno-36-8"></a><span class="w">  </span><span class="nt">"conv_dim"</span><span class="p">:</span><span class="w"> </span><span class="err">...</span><span class="p">,</span>
+<a id="__codelineno-36-9" name="__codelineno-36-9"></a><span class="w">  </span><span class="nt">"conv_kernel"</span><span class="p">:</span><span class="w"> </span><span class="err">...</span><span class="p">,</span>
+<a id="__codelineno-36-10" name="__codelineno-36-10"></a><span class="w">  </span><span class="nt">"layer_types"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"attention"</span><span class="p">,</span><span class="w"> </span><span class="s2">"mamba"</span><span class="p">,</span><span class="w"> </span><span class="err">...</span><span class="p">],</span>
+<a id="__codelineno-36-11" name="__codelineno-36-11"></a><span class="w">  </span><span class="nt">"kv_layer_configs"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="err">...</span><span class="p">]</span>
+<a id="__codelineno-36-12" name="__codelineno-36-12"></a><span class="p">}</span>
+</code></pre></div></td></tr></tbody></table></div>
+<p>C++ <code>LLMEngineRunnerConfig</code> 中也有对应字段：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-37-1">1</a></span>
+<span class="normal"><a href="#__codelineno-37-2">2</a></span>
+<span class="normal"><a href="#__codelineno-37-3">3</a></span>
+<span class="normal"><a href="#__codelineno-37-4">4</a></span>
+<span class="normal"><a href="#__codelineno-37-5">5</a></span>
+<span class="normal"><a href="#__codelineno-37-6">6</a></span>
+<span class="normal"><a href="#__codelineno-37-7">7</a></span>
+<span class="normal"><a href="#__codelineno-37-8">8</a></span>
+<span class="normal"><a href="#__codelineno-37-9">9</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-37-1" name="__codelineno-37-1"></a>numLinearAttnLayers
+<a id="__codelineno-37-2" name="__codelineno-37-2"></a>numAttentionLayers
+<a id="__codelineno-37-3" name="__codelineno-37-3"></a>recurrentStateNumHeads
+<a id="__codelineno-37-4" name="__codelineno-37-4"></a>recurrentStateHeadDim
+<a id="__codelineno-37-5" name="__codelineno-37-5"></a>recurrentStateSize
+<a id="__codelineno-37-6" name="__codelineno-37-6"></a>convDim
+<a id="__codelineno-37-7" name="__codelineno-37-7"></a>convKernel
+<a id="__codelineno-37-8" name="__codelineno-37-8"></a>layerTypes
+<a id="__codelineno-37-9" name="__codelineno-37-9"></a>kvLayerConfigs
+</code></pre></div></td></tr></tbody></table></div>
+<p>这构成了 Python exporter 与 C++ runtime 的契约：</p>
+<ul>
+<li>Python 知道 checkpoint 结构和 layer 类型；</li>
+<li>导出时写出 normalized config；</li>
+<li>C++ 不需要读 HF 原始 config，只消费 runtime config；</li>
+<li>Runtime 根据这些字段分配 KV cache 和 Mamba state。</li>
+</ul>
+<h2 id="prefill-与-decode-的状态语义">Prefill 与 Decode 的状态语义<a class="headerlink" href="#prefill-与-decode-的状态语义" title="Permanent link">¶</a></h2>
+<p>Mamba 在 prefill / decode 中与 Attention 类似，都需要维护历史状态，但状态形式不同。</p>
+<h3 id="prefill">Prefill<a class="headerlink" href="#prefill" title="Permanent link">¶</a></h3>
+<p>Prefill 输入：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-38-1">1</a></span>
+<span class="normal"><a href="#__codelineno-38-2">2</a></span>
+<span class="normal"><a href="#__codelineno-38-3">3</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-38-1" name="__codelineno-38-1"></a>x: [batch, seq_len, nheads, dim]
+<a id="__codelineno-38-2" name="__codelineno-38-2"></a>state: [batch, nheads, dim, dstate]
+<a id="__codelineno-38-3" name="__codelineno-38-3"></a>context_lengths: [batch]
+</code></pre></div></td></tr></tbody></table></div>
+<p>输出：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-39-1">1</a></span>
+<span class="normal"><a href="#__codelineno-39-2">2</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-39-1" name="__codelineno-39-1"></a>output: [batch, seq_len, nheads, dim]
+<a id="__codelineno-39-2" name="__codelineno-39-2"></a>state_out: [batch, nheads, dim, dstate]
+</code></pre></div></td></tr></tbody></table></div>
+<p>对于每个 batch，plugin 需要根据有效 context length 更新状态，避免 padding token 污染 state。</p>
+<h3 id="decode">Decode<a class="headerlink" href="#decode" title="Permanent link">¶</a></h3>
+<p>Decode 输入通常是：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-40-1">1</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-40-1" name="__codelineno-40-1"></a>x: [batch, nheads, dim]
+</code></pre></div></td></tr></tbody></table></div>
+<p>或者某些图里仍保留 4D 但 <code>seq_len=1</code>。</p>
+<p>此时 plugin 不应使用 cumulative <code>context_lengths</code> 做多步 scan，否则会越界或重复更新。代码里也明确区分：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-41-1">1</a></span>
+<span class="normal"><a href="#__codelineno-41-2">2</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-41-1" name="__codelineno-41-1"></a>seqLen &gt; 1 时才使用 context_lengths
+<a id="__codelineno-41-2" name="__codelineno-41-2"></a>seqLen == 1 decode 时不使用 context_lengths 做 prefill scan
+</code></pre></div></td></tr></tbody></table></div>
+<h2 id="与-attention-kv-cache-的对比">与 Attention KV Cache 的对比<a class="headerlink" href="#与-attention-kv-cache-的对比" title="Permanent link">¶</a></h2>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Attention</th>
+<th>Mamba</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>历史状态</td>
+<td>KV cache</td>
+<td>recurrent state + conv state</td>
+</tr>
+<tr>
+<td>状态大小</td>
+<td>随序列长度增长</td>
+<td>固定大小，和 state_size / conv_kernel 有关</td>
+</tr>
+<tr>
+<td>Decode 代价</td>
+<td>依赖历史 KV 读</td>
+<td>更新固定 recurrent state</td>
+</tr>
+<tr>
+<td>Prefill 优化</td>
+<td>并行 attention / fused attention</td>
+<td>需要 scan；当前可串行，也预留 chunked SSD</td>
+</tr>
+<tr>
+<td>Runtime manager</td>
+<td><code>KVCacheManager</code></td>
+<td><code>MambaCacheManager</code></td>
+</tr>
+<tr>
+<td>Hybrid 统一入口</td>
+<td><code>HybridCacheManager</code></td>
+<td><code>HybridCacheManager</code></td>
+</tr>
+</tbody>
+</table>
+<p>Mamba 的理论优势主要在长序列 decode 时状态固定，不需要随着上下文长度无限增长 KV。但 prefill 阶段如果没有高效并行 scan，可能成为瓶颈。因此项目中特别在 plugin 注释和实现里提到未来 chunked scan / CuTe DSL SSD 优化路径。</p>
+<h2 id="项目实现的设计取舍">项目实现的设计取舍<a class="headerlink" href="#项目实现的设计取舍" title="Permanent link">¶</a></h2>
+<h3 id="不把-mamba-当成-attention-的变种">不把 Mamba 当成 Attention 的变种<a class="headerlink" href="#不把-mamba-当成-attention-的变种" title="Permanent link">¶</a></h3>
+<p>项目没有强行把 Mamba state 塞进 KV cache，而是单独设计 <code>MambaCacheManager</code>。这是正确的抽象，因为二者状态结构、更新规则、capture/restore、speculative accept 都不同。</p>
+<h3 id="用-hybridcachemanager-做统一门面">用 HybridCacheManager 做统一门面<a class="headerlink" href="#用-hybridcachemanager-做统一门面" title="Permanent link">¶</a></h3>
+<p>虽然底层状态不同，上层 Runtime 不希望到处写：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-42-1">1</a></span>
+<span class="normal"><a href="#__codelineno-42-2">2</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-42-1" name="__codelineno-42-1"></a>if attention layer...
+<a id="__codelineno-42-2" name="__codelineno-42-2"></a>if mamba layer...
+</code></pre></div></td></tr></tbody></table></div>
+<p>因此 <code>HybridCacheManager</code> 负责路由。这样 <code>LLMEngineRunner</code> 可以面向统一 cache manager 编程。</p>
+<h3 id="python-侧保留模型语义c-侧实现性能-kernel">Python 侧保留模型语义，C++ 侧实现性能 kernel<a class="headerlink" href="#python-侧保留模型语义c-侧实现性能-kernel" title="Permanent link">¶</a></h3>
+<p>Python 侧 <code>MambaMixer</code> 保留清晰的模型结构：projection、conv、SSM、norm、projection。真正高性能和 TensorRT 兼容性由 C++ plugin 负责。</p>
+<p>这是 TensorRT-Edge-LLM 一贯的设计模式：</p>
+<div class="highlight"><table class="highlighttable"><tbody><tr><th colspan="2" class="filename"><span class="filename">Text Only</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-43-1">1</a></span>
+<span class="normal"><a href="#__codelineno-43-2">2</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-43-1" name="__codelineno-43-1"></a>Python: checkpoint parsing + graph construction + ONNX custom op
+<a id="__codelineno-43-2" name="__codelineno-43-2"></a>C++: TensorRT plugin + CUDA kernel + runtime state management
+</code></pre></div></td></tr></tbody></table></div>
+<h3 id="显式-state-io">显式 state I/O<a class="headerlink" href="#显式-state-io" title="Permanent link">¶</a></h3>
+<p>ONNX graph 中 Mamba states 是显式输入输出，而不是 plugin 内部隐藏状态。这一点非常重要：</p>
+<ul>
+<li>TensorRT engine 是纯函数式执行；</li>
+<li>Runtime 可以控制 state 生命周期；</li>
+<li>batch eviction / compaction 可以由 Runtime 管；</li>
+<li>system prompt cache 可以 capture/restore；</li>
+<li>CUDA graph capture 前可以清空状态；</li>
+<li>speculative decoding 可以控制 accept/reject 后的状态提交。</li>
+</ul>
+<h3 id="dtype-保守策略">dtype 保守策略<a class="headerlink" href="#dtype-保守策略" title="Permanent link">¶</a></h3>
+<p>大部分数据 FP16；<code>A</code> 保持 FP32。这是性能与数值稳定性的折中。</p>
+<h2 id="当前限制与潜在优化">当前限制与潜在优化<a class="headerlink" href="#当前限制与潜在优化" title="Permanent link">¶</a></h2>
+<p>从代码注释和实现可以看出当前限制：</p>
+<ol>
+<li><code>MambaPlugin</code> 主要支持 FP16 data path；</li>
+<li><code>A</code> 必须是 FP32；</li>
+<li>默认长 prefill 可能走 step loop，存在串行开销；</li>
+<li><code>chunk_size &gt; 1</code> 在 plugin creator 中仍被限制；</li>
+<li>非 trivial <code>time_step_limit</code> 暂未支持；</li>
+<li>CuTe DSL SSD path 需要编译宏和硬件/shape 条件满足。</li>
+</ol>
+<p>潜在优化方向：</p>
+<ul>
+<li>完善 chunked parallel scan；</li>
+<li>扩展更多 dtype / quantized state 支持；</li>
+<li>减少 state copy 或让 TensorRT binding 支持更直接的 ping-pong buffer；</li>
+<li>将多层 state 做更连续的 packed allocation；</li>
+<li>对 prefill 和 decode 分别建立更细粒度 TensorRT profile / plugin specialization。</li>
+</ul>
+<h2 id="一句话总结">一句话总结<a class="headerlink" href="#一句话总结" title="Permanent link">¶</a></h2>
+<p>TensorRT-Edge-LLM 的 Mamba 实现本质上是一个跨 Python exporter、ONNX custom op、TensorRT plugin、CUDA kernel、C++ runtime cache manager 的完整工程化闭环：Python 侧保留 Mamba2 模型语义，ONNX 侧显式暴露 conv / recurrent state，TensorRT plugin 执行 selective SSM 更新，C++ Runtime 用 <code>MambaCacheManager</code> 管理每层每 batch 的状态，并通过 <code>HybridCacheManager</code> 与 Attention KV cache 统一到 hybrid decoder 推理框架中。</p>
+<style>
+.related-posts {
+  margin-top: 1.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(0,0,0,0.1);
+  max-height: none !important; /* 防止Safari错误计算高度 */
+  overflow: visible !important; /* 防止内容被截断 */
+}
+.related-posts h3 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-size: 1.2rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+.related-posts ul {
+  margin: 0 0 0.5rem 0 !important; /* 强制覆盖可能的冲突样式 */
+  padding-left: 1.5rem;
+  list-style-position: outside;
+}
+.related-posts li {
+  margin-bottom: 0.25rem;
+  line-height: 1.4;
+}
+/* 暗色模式适配 */
+[data-md-color-scheme="slate"] .related-posts {
+  border-top-color: rgba(255,255,255,0.1);
+}
+/* Safari特定修复 */
+@supports (-webkit-hyphens:none) {
+  .related-posts {
+    display: block;
+    position: relative;
+    height: auto !important;
+  }
+  .related-posts ul {
+    position: static;
+  }
+}
+</style>
+<div class="related-posts">
+<h3>📚 相关文章推荐</h3>
+<ul>
+<li><a href="https://kenforever1.github.io/blog/vllmsglangvllm-omni-与-tensorrt-llm大模型推理框架架构与优化启示/" target="_blank">vLLM、SGLang、vLLM-Omni 与 TensorRT-LLM：大模型推理框架架构与优化启示</a></li>
+<li><a href="https://kenforever1.github.io/blog/c使用abseil-cpp遇到的小问题/" target="_blank">C++使用abseil-cpp遇到的小问题</a></li>
+<li><a href="https://kenforever1.github.io/blog/helix-gpt如何实现ai-code以及如何调试/" target="_blank">helix-gpt如何实现AI code以及如何调试?</a></li>
+<li><a href="https://kenforever1.github.io/blog/ai的一些笔记/" target="_blank">AI的一些笔记</a></li>
+<li><a href="https://kenforever1.github.io/blog/mit-经典讲座how-to-speak---patrick-winston/" target="_blank">MIT 经典讲座：How to Speak - Patrick Winston</a></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+  
+    
+  
+  
+
+
+  <aside class="md-source-file">
+    
+      
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="最后更新">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
+    </span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年6月14日 22:49:42 CST">2026-06-14</span>
+  </span>
+
+    
+    
+    
+    
+  </aside>
+
+
+  
+
+
+  
+
+
+
+  
+    <link rel="stylesheet" type="text/css" href="../../stylesheets/auto-number-title.css">
+  
+  <h1 id="__comments">评论</h1>
+  <!-- Insert generated snippet here -->
+  <script src="https://giscus.app/client.js" data-repo="KenForever1/KenForever1.github.io" data-repo-id="R_kgDOGbt1Ww" data-category="Announcements" data-category-id="DIC_kwDOGbt1W84CahvG" data-mapping="pathname" data-strict="0" data-reactions-enabled="1" data-emit-metadata="0" data-input-position="bottom" data-theme="preferred_color_scheme" data-lang="zh-CN" crossorigin="anonymous" async="">
+  </script>
+
+  <!-- Synchronize Giscus theme with palette -->
+  <script>
+    var giscus = document.querySelector("script[src*=giscus]")
+
+    // Set palette on initial load
+    var palette = __md_get("__palette")
+    if (palette && typeof palette.color === "object") {
+      var theme = palette.color.scheme === "slate"
+        ? "transparent_dark"
+        : "light"
+
+      // Instruct Giscus to set theme
+      giscus.setAttribute("data-theme", theme) 
+    }
+
+    // Register event handlers after documented loaded
+    document.addEventListener("DOMContentLoaded", function() {
+      var ref = document.querySelector("[data-md-component=palette]")
+      ref.addEventListener("change", function() {
+        var palette = __md_get("__palette")
+        if (palette && typeof palette.color === "object") {
+          var theme = palette.color.scheme === "slate"
+            ? "transparent_dark"
+            : "light"
+
+          // Instruct Giscus to change theme
+          var frame = document.querySelector(".giscus-frame")
+          frame.contentWindow.postMessage(
+            { giscus: { setConfig: { theme } } },
+            "https://giscus.app"
+          )
+        }
+      })
+    })
+  </script>
+
+      
+    </article>
+  </div>
+
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden="">
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"></path></svg>
+  回到页面顶部
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+        
+      
+      <nav class="md-footer__inner md-grid" aria-label="页脚">
+        
+          
+          <a href="../deepseek-v4-hca--csa-%E6%B7%B1%E5%BA%A6%E7%90%86%E8%A7%A3%E5%88%86%E6%9E%90/" class="md-footer__link md-footer__link--prev" aria-label="上一页: DeepSeek-V4 HCA &amp; CSA 深度理解分析">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                上一页
+              </span>
+              <div class="md-ellipsis">
+                DeepSeek-V4 HCA &amp; CSA 深度理解分析
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../mate-%E5%AE%9E%E7%8E%B0%E8%A7%A3%E6%9E%90musa-%E5%B9%B3%E5%8F%B0%E4%B8%8A%E7%9A%84-genai-%E7%AE%97%E5%AD%90%E5%85%BC%E5%AE%B9%E5%B1%82%E4%B8%8E%E9%AB%98%E6%80%A7%E8%83%BD%E5%86%85%E6%A0%B8%E5%BA%93/" class="md-footer__link md-footer__link--next" aria-label="下一页: MATE 实现解析：MUSA 平台上的 GenAI 算子兼容层与高性能内核库">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                下一页
+              </span>
+              <div class="md-ellipsis">
+                MATE 实现解析：MUSA 平台上的 GenAI 算子兼容层与高性能内核库
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"></path></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <!--
+  Copyright (c) 2016-2023 Martin Donath <martin.donath@squidfunk.com>
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to
+  deal in the Software without restriction, including without limitation the
+  rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+  sell copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+  IN THE SOFTWARE.
+-->
+
+<!-- Copyright and theme information -->
+<div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      版权所有 © 2025-2026
+    </div>
+  
+  
+    <script id="LA-DATA-WIDGET" crossorigin="anonymous" charset="UTF-8" src="https://v6-widget.51.la/v6/3JIbgFniDcGIaNP7/quote.js?theme=#FFFFFF,#808080,#808080,#B3B3B3,#FFFFFF,#1690FF,12&amp;f=12&amp;display=0,0,1,1,1,1,1,1"></script>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+    <a href="https://github.com/KenForever1" target="_blank" rel="noopener" title="GitHub" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"></path></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://www.zhihu.com/people/steveforever" target="_blank" rel="noopener" title="Mastodon" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M170.5 148.1v217.5h23.4l7.7 26.4 42-26.4h49.5V148.1H170.4zM268.3 342h-27.9l-27.9 17.5-5.1-17.5h-11.9V171.7h72.8zm-118.5-94.3H97.5c1.7-27.1 2.2-51.6 2.2-73.5h51.2s2-22.6-8.6-22.3H53.8c3.5-13.1 7.9-26.7 13.1-40.7 0 0-24.1 0-32.3 21.6-3.4 8.9-13.2 43.1-30.7 78.1 5.9-.6 25.4-1.2 36.8-22.2 2.1-5.9 2.5-6.7 5.1-14.5h28.9c0 10.5-1.2 66.9-1.7 73.4H20.7c-11.7 0-15.6 23.6-15.6 23.6h65.6c-4.4 49.9-28 91.9-70.8 125.1 20.5 5.9 40.9-.9 51-9.9 0 0 23-20.9 35.6-69.3l54 64.9s7.9-26.9-1.2-40c-7.6-8.9-28.1-33.1-36.8-41.8L87.9 312c4.4-14 7-27.6 7.9-40.7h61.6s-.1-23.6-7.6-23.6m412-1.6c20.8-25.6 45-58.6 45-58.6s-18.6-14.8-27.4-4.1c-6 8.2-36.8 48.2-36.8 48.2l19.2 14.4zm-150-59.1c-9-8.2-25.9 2.1-25.9 2.1s39.5 55 41.1 57.4l19.5-13.7s-25.7-37.6-34.7-45.9zM640 258.4c-19.8 0-130.9.9-131.1.9v-101q7.2 0 22.8-1.2c40.9-2.4 70.1-4 87.8-4.8 0 0 12.2-27.2-.6-33.4-3.1-1.2-23.2 4.6-23.2 4.6s-165.2 16.5-232.4 18c1.6 8.8 7.6 17.1 15.8 19.6 13.3 3.5 22.7 1.7 49.2.9 24.8-1.6 43.7-2.4 56.5-2.4v99.8H351.3s2.8 22.3 25.5 22.9h107.9v70.9c0 14-11.2 22-24.5 21.1-14.1.1-26.1-1.1-41.7-1.8 2 4 6.3 14.4 19.3 21.8 9.9 4.8 16.2 6.6 26 6.6 29.6 0 45.7-17.3 44.9-45.3v-73.3h122.4c9.7 0 8.7-23.8 8.7-23.8z"></path></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.indexes", "navigation.top", "navigation.sections", "navigation.path", "content.action.edit", "content.action.view", "content.code.copy", "navigation.footer"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../js/mathjax.js"></script>
+      
+        <script src="https://cdn.bootcss.com/mathjax/3.0.5/es5/tex-mml-chtml.js"></script>
+      
+    
+  
+<script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(()=>{ lightbox.reload(); });
+</script></body></html>

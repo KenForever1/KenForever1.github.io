@@ -1,0 +1,1107 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FlashInfer GEMM 学习笔记</title>
+  <style>
+    :root {
+      --ink: #17201d;
+      --muted: #5b6862;
+      --line: #d9dfdc;
+      --paper: #fbfcfb;
+      --surface: #ffffff;
+      --blue: #2e63c7;
+      --blue-soft: #eaf1ff;
+      --green: #24765c;
+      --green-soft: #e6f4ee;
+      --amber: #b56a1f;
+      --amber-soft: #fff0df;
+      --red: #a94442;
+      --red-soft: #fff0ef;
+      --violet: #6755aa;
+      --violet-soft: #f0edfb;
+      --code-bg: #17211e;
+      --code-ink: #eef8f3;
+      --shadow: 0 16px 42px rgba(23, 32, 29, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.66;
+      letter-spacing: 0;
+    }
+
+    a {
+      color: var(--blue);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid var(--line);
+      background: rgba(251, 252, 251, 0.94);
+      backdrop-filter: blur(14px);
+    }
+
+    .topbar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 12px 24px;
+    }
+
+    .brand {
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .nav {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .nav a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 32px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+    }
+
+    .nav a:hover {
+      background: var(--green-soft);
+      color: var(--green);
+    }
+
+    header {
+      border-bottom: 1px solid var(--line);
+      background:
+        linear-gradient(110deg, rgba(46, 99, 199, 0.12), transparent 46%),
+        linear-gradient(25deg, rgba(36, 118, 92, 0.12), transparent 48%),
+        var(--surface);
+    }
+
+    .hero {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 58px 24px 44px;
+    }
+
+    .kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+      color: var(--green);
+      font-size: 13px;
+      font-weight: 760;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .kicker::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    h1 {
+      max-width: 980px;
+      margin: 0;
+      font-size: clamp(34px, 5vw, 62px);
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      max-width: 940px;
+      margin: 20px 0 0;
+      color: var(--muted);
+      font-size: 18px;
+    }
+
+    .commit-line {
+      max-width: 940px;
+      margin: 18px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 28px;
+    }
+
+    .signal {
+      min-height: 124px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: var(--shadow);
+    }
+
+    .signal strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+
+    .signal p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    main {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 34px 24px 72px;
+    }
+
+    section {
+      margin-top: 42px;
+    }
+
+    section:first-child {
+      margin-top: 0;
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: 28px;
+      line-height: 1.22;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      line-height: 1.3;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0 0 12px;
+    }
+
+    .lead {
+      max-width: 940px;
+      color: var(--muted);
+      font-size: 17px;
+    }
+
+    .band {
+      padding: 28px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 18px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .item {
+      min-height: 100%;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .item p,
+    li {
+      color: var(--muted);
+    }
+
+    .item.blue {
+      border-color: #c8d6ff;
+      background: var(--blue-soft);
+    }
+
+    .item.green {
+      border-color: #b7d9ca;
+      background: var(--green-soft);
+    }
+
+    .item.amber {
+      border-color: #efc79c;
+      background: var(--amber-soft);
+    }
+
+    .item.violet {
+      border-color: #d5cdf0;
+      background: var(--violet-soft);
+    }
+
+    .item.red {
+      border-color: #edc2bf;
+      background: var(--red-soft);
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 3px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    code {
+      padding: 2px 5px;
+      border-radius: 5px;
+      background: #eef3f1;
+      color: #23322d;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 0.92em;
+    }
+
+    pre {
+      overflow-x: auto;
+      margin: 14px 0 0;
+      padding: 16px;
+      border: 1px solid #cbd4d1;
+      border-radius: 8px;
+      background: var(--code-bg);
+      color: var(--code-ink);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    pre code {
+      padding: 0;
+      background: transparent;
+      color: inherit;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .step {
+      position: relative;
+      min-height: 142px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .step::after {
+      content: "→";
+      position: absolute;
+      top: 50%;
+      right: -16px;
+      transform: translateY(-50%);
+      color: var(--green);
+      font-weight: 900;
+    }
+
+    .step:last-child::after {
+      display: none;
+    }
+
+    .num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      margin-bottom: 10px;
+      border-radius: 50%;
+      background: var(--green);
+      color: #fff;
+      font-weight: 820;
+      font-size: 13px;
+    }
+
+    .layers {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .layer {
+      display: grid;
+      grid-template-columns: 180px minmax(0, 1fr) 180px;
+      gap: 12px;
+      align-items: center;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .layer strong {
+      font-size: 15px;
+    }
+
+    .bar {
+      min-height: 18px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #edf1ef;
+    }
+
+    .bar span {
+      display: block;
+      height: 18px;
+      border-radius: inherit;
+    }
+
+    .bar.api span {
+      width: 100%;
+      background: var(--blue);
+    }
+
+    .bar.jit span {
+      width: 78%;
+      background: var(--green);
+    }
+
+    .bar.binding span {
+      width: 62%;
+      background: var(--amber);
+    }
+
+    .bar.kernel span {
+      width: 88%;
+      background: var(--violet);
+    }
+
+    .matrix {
+      display: grid;
+      grid-template-columns: 1.1fr 1.2fr 1fr;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #edf3f0;
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    ul {
+      margin: 10px 0 0;
+      padding-left: 20px;
+    }
+
+    .path-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .path {
+      padding: 13px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .path a {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+      text-decoration: none;
+    }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 18px 0 14px;
+    }
+
+    .tab {
+      min-height: 34px;
+      padding: 4px 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 720;
+      cursor: pointer;
+    }
+
+    .tab.active {
+      border-color: var(--blue);
+      background: var(--blue);
+      color: #fff;
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    .callout {
+      margin-top: 16px;
+      padding: 16px;
+      border: 1px solid #efc79c;
+      border-radius: 8px;
+      background: var(--amber-soft);
+    }
+
+    .callout strong {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .source-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .source-list a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 5px 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      text-decoration: none;
+      font-size: 13px;
+    }
+
+    footer {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 0 24px 44px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 1050px) {
+      .hero-grid,
+      .grid-2,
+      .grid-3,
+      .grid-4,
+      .flow,
+      .matrix {
+        grid-template-columns: 1fr;
+      }
+
+      .step::after {
+        top: auto;
+        right: 50%;
+        bottom: -19px;
+        transform: translateX(50%) rotate(90deg);
+      }
+
+      .topbar-inner {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .nav {
+        justify-content: flex-start;
+      }
+
+      .layer {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .band {
+        padding: 18px;
+      }
+    }
+
+    @media print {
+      .topbar {
+        position: static;
+      }
+
+      body {
+        background: #fff;
+      }
+
+      .band,
+      .signal,
+      .item {
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">FlashInfer GEMM</div>
+      <nav class="nav" aria-label="页面导航">
+        <a href="#map">学习地图</a>
+        <a href="#dispatch">调度链路</a>
+        <a href="#api">API族</a>
+        <a href="#jit">JIT</a>
+        <a href="#lowp">低精度</a>
+        <a href="#moe">MoE</a>
+        <a href="#reading">源码路径</a>
+      </nav>
+    </div>
+  </div>
+
+  <header>
+    <div class="hero">
+      <p class="kicker">Learning Notes</p>
+      <h1>FlashInfer GEMM 子系统：多精度矩阵乘、JIT 生成与多后端调度</h1>
+      <p class="commit-line">
+        基于 Git 仓库 <a href="https://github.com/flashinfer-ai/flashinfer">flashinfer-ai/flashinfer</a>
+        的代码整理；源码快照 commit：<code>fc12ef21d9eddcd9a7b1a4a8024fb3e81fda804d</code>。
+      </p>
+      <p class="subtitle">
+        这份学习页完全按当前代码组织内容。重点不是罗列所有 kernel，而是帮你建立“一个 GEMM API 为什么会走到不同后端”的学习模型。
+      </p>
+
+      <div class="hero-grid">
+        <article class="signal">
+          <strong>GEMM 子系统不是单个 kernel</strong>
+          <p>它是一层调度系统，统一包装 cuDNN、CUTLASS、TRT-LLM、TGV、CuTe DSL、DeepGEMM 和特化 kernel。</p>
+        </article>
+        <article class="signal">
+          <strong>低精度复杂度在 scale layout</strong>
+          <p>FP8/FP4/MXFP8 的难点常常不是 matmul，而是 scale granularity、swizzle、TMA alignment。</p>
+        </article>
+        <article class="signal">
+          <strong>auto 是保守选择</strong>
+          <p>需要特殊权重预处理的后端不会随便进入 auto，避免相同 tensor 被不同 layout 语义误读。</p>
+        </article>
+        <article class="signal">
+          <strong>serving 需要 small-M 专用路径</strong>
+          <p>TGV、TinyGEMM、TRT-LLM low latency、RouterGEMM 都是为了压 decode/MoE 热路径延迟。</p>
+        </article>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="map" class="band">
+      <h2>1. 学习地图：把 GEMM 当成后端分拣中心</h2>
+      <p class="lead">
+        FlashInfer GEMM 的设计不是“我自己实现所有矩阵乘”，而是把不同库和自研 kernel 放在统一 API、JIT、autotune 和架构约束体系里。
+      </p>
+
+      <div class="layers">
+        <div class="layer">
+          <strong>Python API</strong>
+          <div class="bar api"><span></span></div>
+          <span><code>mm_bf16</code> / <code>mm_fp4</code> / Segment / Group</span>
+        </div>
+        <div class="layer">
+          <strong>Requirement + Heuristic</strong>
+          <div class="bar jit"><span></span></div>
+          <span>先判断能不能跑，再决定 auto 候选</span>
+        </div>
+        <div class="layer">
+          <strong>AutoTuner + Runner</strong>
+          <div class="bar binding"><span></span></div>
+          <span>为候选后端和 tactic 做 profile/cache</span>
+        </div>
+        <div class="layer">
+          <strong>JIT / Binding</strong>
+          <div class="bar jit"><span></span></div>
+          <span>生成 CUTLASS 实例、加载 cubin、注册 custom op</span>
+        </div>
+        <div class="layer">
+          <strong>Kernel Backend</strong>
+          <div class="bar kernel"><span></span></div>
+          <span>cuDNN / CUTLASS / TRT-LLM / TGV / CuTe DSL / DeepGEMM</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="dispatch">
+      <h2>2. 一次调用的统一调度链路</h2>
+      <p class="lead">
+        读 <a href="https://github.com/flashinfer-ai/flashinfer/blob/main/flashinfer/gemm/gemm_base.py"><code>flashinfer/gemm/gemm_base.py</code></a> 时，抓住这个重复模式就不会迷路：
+        common shape check → backend requirement → heuristic → workspace → runner list → AutoTuner → backend module。
+      </p>
+
+      <div class="flow">
+        <div class="step">
+          <span class="num">1</span>
+          <h3>用户 API</h3>
+          <p><code>flashinfer.gemm.mm_fp4(...)</code> 或 <code>mm_bf16(...)</code></p>
+        </div>
+        <div class="step">
+          <span class="num">2</span>
+          <h3>参数检查</h3>
+          <p>dtype、shape、layout、SM 架构、cuDNN/CUTLASS 能力。</p>
+        </div>
+        <div class="step">
+          <span class="num">3</span>
+          <h3>候选后端</h3>
+          <p><code>backend="auto"</code> 时生成 suitable backend 列表。</p>
+        </div>
+        <div class="step">
+          <span class="num">4</span>
+          <h3>Runner</h3>
+          <p>每个后端包装成 <code>TunableRunner</code>。</p>
+        </div>
+        <div class="step">
+          <span class="num">5</span>
+          <h3>AutoTuner</h3>
+          <p>按 shape/profile 选择 runner + tactic，并缓存。</p>
+        </div>
+        <div class="step">
+          <span class="num">6</span>
+          <h3>Kernel</h3>
+          <p>调用具体 JIT module、cuDNN graph 或 cubin-backed runner。</p>
+        </div>
+      </div>
+
+      <pre><code>mm_fp4(...)
+  ├─ @backend_requirement(...)
+  ├─ _check_mm_fp4_problem_size(...)
+  ├─ _heuristic_func_mm_fp4(...)
+  ├─ workspace = _get_cache_buf(...)
+  ├─ runners = backend_to_runner_factory[backend](...)
+  └─ AutoTuner.choose_one("fp4_gemm", runners, tuning_config, inputs)</code></pre>
+    </section>
+
+    <section id="api">
+      <h2>3. API 家族：按场景而不是按函数名记</h2>
+      <div class="tabs" role="tablist" aria-label="API 分类">
+        <button class="tab active" type="button" data-tab="dense">Dense</button>
+        <button class="tab" type="button" data-tab="lowp">FP8/FP4/MXFP8</button>
+        <button class="tab" type="button" data-tab="segment">Segment/Group</button>
+        <button class="tab" type="button" data-tab="special">特化路径</button>
+      </div>
+
+      <div id="tab-dense" class="tab-panel active">
+        <div class="grid-3">
+          <article class="item blue">
+            <h3>BF16 dense</h3>
+            <p><code>mm_bf16</code> / <code>bmm_bf16</code> 是最适合入门的调度入口。</p>
+            <div class="tag-row">
+              <span class="tag">cuDNN</span>
+              <span class="tag">CUTLASS</span>
+              <span class="tag">TGV</span>
+              <span class="tag">cuBLASLt</span>
+              <span class="tag">TinyGEMM</span>
+            </div>
+          </article>
+          <article class="item green">
+            <h3>当前代码事实</h3>
+            <p><code>mm_bf16</code> 包含 <code>cublaslt</code> 和 <code>tinygemm</code> 后端，dense BF16 的候选范围比只看 CUTLASS/cuDNN 更宽。</p>
+          </article>
+          <article class="item amber">
+            <h3>bias / PDL</h3>
+            <p>bias 或 PDL 会把候选偏向 TGV/cuDNN/TinyGEMM；CUTLASS 和 cuBLASLt 路径会拒绝。</p>
+          </article>
+        </div>
+      </div>
+
+      <div id="tab-lowp" class="tab-panel">
+        <div class="grid-3">
+          <article class="item violet">
+            <h3><code>mm_fp8</code></h3>
+            <p>当前是 low-latency TRT-LLM 路径，权重 <code>b</code> 需要按低延迟 GEMM 的布局预处理。</p>
+          </article>
+          <article class="item blue">
+            <h3><code>mm_mxfp8</code></h3>
+            <p>核心是 block-scaled FP8。scale 可能是 2D non-swizzled，也可能是 1D swizzled，不能随意 reshape。</p>
+          </article>
+          <article class="item red">
+            <h3><code>mm_fp4</code></h3>
+            <p>覆盖 NVFP4/MXFP4。<code>block_size=16</code> 对应 NVFP4，<code>block_size=32</code> 对应 MXFP4。</p>
+          </article>
+        </div>
+      </div>
+
+      <div id="tab-segment" class="tab-panel">
+        <div class="grid-3">
+          <article class="item green">
+            <h3>SegmentGEMM</h3>
+            <p>把 ragged segments 转换成 CUTLASS grouped GEMM 的 problem descriptors。</p>
+          </article>
+          <article class="item amber">
+            <h3>Group GEMM</h3>
+            <p>MoE tokens 按 expert 分组后，每个 expert 一个小 GEMM，适合 groupwise 调度。</p>
+          </article>
+          <article class="item blue">
+            <h3>DeepGEMM</h3>
+            <p>面向 Blackwell FP8 grouped contiguous / grouped masked MoE GEMM，重点处理 scale layout。</p>
+          </article>
+        </div>
+      </div>
+
+      <div id="tab-special" class="tab-panel">
+        <div class="grid-3">
+          <article class="item amber">
+            <h3>TGV</h3>
+            <p>FlashInfer 自研 Blackwell small-M BF16/FP16 路径，支持 bias / PDL。</p>
+          </article>
+          <article class="item violet">
+            <h3>CuTe DSL</h3>
+            <p>Python DSL 写 Blackwell block-scaled GEMM，显式组合 TMA、tcgen05、TMEM、pipeline。</p>
+          </article>
+          <article class="item green">
+            <h3>RouterGEMM</h3>
+            <p>固定 MoE router 形状专用 kernel，当前源码含 K7168_N128、K7168_N256、K6144_N256。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>4. 后端选择矩阵</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>路径</th>
+            <th>适用场景</th>
+            <th>关键约束</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>cuDNN</td>
+            <td>通用 dense BF16/FP8/FP4/MXFP8，graph build/cache/execute。</td>
+            <td>依赖 cuDNN frontend/backend 版本；部分路径支持 override shape。</td>
+          </tr>
+          <tr>
+            <td>CUTLASS JIT</td>
+            <td>SM100/103/120 上的 BF16、FP8、FP4、MXFP8 和 groupwise GEMM。</td>
+            <td>通过 Jinja 生成具体 CTA tile 实例；bias/PDL 能力受 wrapper 限制。</td>
+          </tr>
+          <tr>
+            <td>TRT-LLM generated</td>
+            <td>低精度 generated cubin 和 low-latency GEMM。</td>
+            <td>常要求权重 shuffle 或 128x4 swizzle；不应和普通 layout 后端混用。</td>
+          </tr>
+          <tr>
+            <td>TGV</td>
+            <td>Blackwell small-M BF16/FP16，尤其是 decode dense layer。</td>
+            <td>SM100/103，输出 dtype 受限，内部使用 TMA/UMMA/TMEM/barrier pipeline。</td>
+          </tr>
+          <tr>
+            <td>CuTe DSL</td>
+            <td>Blackwell block-scaled FP4/MXFP8，透明 Python kernel。</td>
+            <td>scale layout 要求严格；tactic 选择依赖 tile/cluster/PDL 等参数。</td>
+          </tr>
+          <tr>
+            <td>DeepGEMM</td>
+            <td>DeepSeek 风格 FP8 groupwise MoE GEMM。</td>
+            <td>需要 scale factor transform、TMA aligned packed layout、driver launch。</td>
+          </tr>
+          <tr>
+            <td>RouterGEMM</td>
+            <td>M=1..16 的固定 MoE router shape。</td>
+            <td>只服务少数模型形状，换取极低延迟。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="jit" class="band">
+      <h2>5. JIT 生成：为什么代码看起来有这么多文件</h2>
+      <p class="lead">
+        低精度 GEMM 的组合空间很大：SM 架构、dtype、输出 dtype、CTA tile、scale layout、MMA SM 数、swap_ab 等都会生成不同实例。
+        FlashInfer 用 Jinja 和 JIT spec 把这些组合变成按需编译的 C++/CUDA 模块。
+      </p>
+
+      <div class="grid-3">
+        <article class="item blue">
+          <h3>基础 module</h3>
+          <p><code>gen_gemm_module()</code> 编译 <a href="https://github.com/flashinfer-ai/flashinfer/blob/main/csrc/bmm_fp8.cu"><code>csrc/bmm_fp8.cu</code></a>、<a href="https://github.com/flashinfer-ai/flashinfer/blob/main/csrc/group_gemm.cu"><code>csrc/group_gemm.cu</code></a>、<a href="https://github.com/flashinfer-ai/flashinfer/blob/main/csrc/flashinfer_gemm_binding.cu"><code>csrc/flashinfer_gemm_binding.cu</code></a>。</p>
+        </article>
+        <article class="item green">
+          <h3>CUTLASS 实例化</h3>
+          <p><a href="https://github.com/flashinfer-ai/flashinfer/blob/main/csrc/fp4_gemm_cutlass.jinja"><code>csrc/fp4_gemm_cutlass.jinja</code></a> 等模板按 CTA tile 和 dtype 生成很多 <code>.cu</code>。</p>
+        </article>
+        <article class="item amber">
+          <h3>TRT-LLM cubin</h3>
+          <p>不是源码生成 kernel，而是下载/缓存 generated GEMM 头和 cubin，再编译 runner。</p>
+        </article>
+      </div>
+
+      <div class="callout">
+        <strong>SM120 FP4 tile 事实</strong>
+        <p>当前代码中的 SM120 FP4 tile 包括 <code>(128,32,128)</code>、<code>(128,32,256)</code>、<code>(128,64,128)</code>、<code>(128,64,256)</code>、<code>(128,128,128)</code>、<code>(128,128,256)</code>、<code>(256,128,128)</code>、<code>(128,256,128)</code>。阅读 JIT 生成逻辑时，要把这些 tile 当作候选实例集合来理解。</p>
+      </div>
+    </section>
+
+    <section id="lowp">
+      <h2>6. 低精度 GEMM：重点是 scale 的形状和语义</h2>
+      <p class="lead">
+        FP8/FP4/MXFP8 GEMM 的大部分工程复杂度，不在矩阵乘公式，而在“scale tensor 该长什么样、如何 swizzle、哪个 backend 能读这种布局”。
+      </p>
+
+      <div class="matrix">
+        <article class="item blue">
+          <h3>数据格式</h3>
+          <ul>
+            <li>FP8 e4m3/e5m2：常见 activation/weight 低精度。</li>
+            <li>NVFP4：<code>block_size=16</code>。</li>
+            <li>MXFP4/MXFP8：<code>block_size=32</code> 或 scale vec size 32。</li>
+          </ul>
+        </article>
+        <article class="item amber">
+          <h3>scale layout</h3>
+          <ul>
+            <li>2D non-swizzled：看起来像普通二维 scale。</li>
+            <li>1D swizzled：承载 <code>F8_128x4</code> 等布局语义。</li>
+            <li>TMA aligned packed：DeepGEMM/CuTe DSL 很在意。</li>
+          </ul>
+        </article>
+        <article class="item red">
+          <h3>风险点</h3>
+          <ul>
+            <li>不能把 swizzled 1D scale 随手 reshape 成 2D。</li>
+            <li>TRT-LLM 后端可能需要 shuffle 后的权重。</li>
+            <li>auto 后端不会选择需要不同输入语义的路径。</li>
+          </ul>
+        </article>
+      </div>
+
+      <pre><code>mm_fp4(a, b, a_descale, b_descale, ...)
+  block_size = 16 -> NVFP4
+  block_size = 32 -> MXFP4
+
+mm_mxfp8(a, b, a_descale, b_descale, ...)
+  use_8x4_sf_layout=True  -> swizzled scale path
+  backend="trtllm"        -> requires preprocessed / shuffled weight semantics
+  backend="cute-dsl"      -> requires compatible Blackwell scale layout</code></pre>
+    </section>
+
+    <section id="moe" class="band">
+      <h2>7. Segment / Group / DeepGEMM / RouterGEMM：为 MoE 和 ragged serving 服务</h2>
+      <div class="grid-4">
+        <article class="item green">
+          <h3>SegmentGEMM</h3>
+          <p>输入是拼接后的 ragged tokens，通过 <code>seg_lens/seg_indptr</code> 映射每段，最终转成 grouped GEMM descriptors。</p>
+        </article>
+        <article class="item amber">
+          <h3>Group GEMM</h3>
+          <p>MoE routing 后每个 expert token 数不同，group GEMM 一次提交多组 expert GEMM。</p>
+        </article>
+        <article class="item blue">
+          <h3>DeepGEMM</h3>
+          <p>提供 grouped contiguous 和 grouped masked 两种 FP8 NT groupwise 路径。</p>
+        </article>
+        <article class="item violet">
+          <h3>RouterGEMM</h3>
+          <p>专门优化 MoE router 的小 M 固定形状，当前支持 DeepSeek/Mistral/GLM 类形状。</p>
+        </article>
+      </div>
+
+      <pre><code>SegmentGEMM:
+  x[sum(seg_lens), d_in] + weights[num_weights, d_out, d_in]
+  -> build problem arrays
+  -> cutlass_segment_gemm / cutlass_segment_gemm_sm90
+
+DeepGEMM:
+  GroupedContiguous: packed tokens + m_indices
+  GroupedMasked: fixed expected_m + masked_m</code></pre>
+    </section>
+
+    <section>
+      <h2>8. Blackwell 特化：TGV 和 CuTe DSL 怎么理解</h2>
+      <div class="grid-2">
+        <article class="item amber">
+          <h3>TGV GEMM</h3>
+          <p>
+            TGV 是 FlashInfer 自控的 Blackwell GEMM pipeline。它把角色拆成 TMA load、UMMA compute、TMEM accumulator、
+            epilogue 和 mbarrier 同步，所以可以更自然地支持 bias / PDL / small-M latency。
+          </p>
+          <div class="tag-row">
+            <span class="tag">TMA</span>
+            <span class="tag">UMMA</span>
+            <span class="tag">TMEM</span>
+            <span class="tag">mbarrier</span>
+            <span class="tag">PDL</span>
+          </div>
+        </article>
+        <article class="item blue">
+          <h3>CuTe DSL GEMM</h3>
+          <p>
+            CuTe DSL 把 Blackwell kernel 结构提升到 Python：你能在 Python 文件中看到 tcgen05、TMA、cluster、
+            pipeline、scale factor tensor 和 TMEM copy 的组合方式。
+          </p>
+          <div class="tag-row">
+            <span class="tag">tcgen05</span>
+            <span class="tag">PipelineTmaUmma</span>
+            <span class="tag">scale factor</span>
+            <span class="tag">cluster</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="reading">
+      <h2>9. 推荐源码阅读顺序</h2>
+      <div class="path-list">
+        <div class="path">
+          <a href="https://github.com/flashinfer-ai/flashinfer/blob/main/flashinfer/gemm/gemm_base.py#L485">flashinfer/gemm/gemm_base.py#L485</a>
+          <p><code>mm_bf16</code>：先理解 backend requirement / heuristic / AutoTuner 的最完整入口。</p>
+        </div>
+        <div class="path">
+          <a href="https://github.com/flashinfer-ai/flashinfer/blob/main/flashinfer/gemm/gemm_base.py#L5885">flashinfer/gemm/gemm_base.py#L5885</a>
+          <p><code>mm_fp4</code>：看低精度 GEMM 的 backend 分支、scale layout、auto 策略。</p>
+        </div>
+        <div class="path">
+          <a href="https://github.com/flashinfer-ai/flashinfer/blob/main/flashinfer/jit/gemm/core.py#L85">flashinfer/jit/gemm/core.py#L85</a>
+          <p>Jinja 生成 CUTLASS FP4 实例，理解 dtype/tile/SM 如何变成源码。</p>
+        </div>
+        <div class="path">
+          <a href="https://github.com/flashinfer-ai/flashinfer/blob/main/flashinfer/gemm/gemm_base.py#L1736">flashinfer/gemm/gemm_base.py#L1736</a>
+          <p><code>SegmentGEMMWrapper</code>：理解 ragged segment 如何转换成 grouped GEMM problem arrays。</p>
+        </div>
+        <div class="path">
+          <a href="https://github.com/flashinfer-ai/flashinfer/blob/main/flashinfer/deep_gemm.py#L132">flashinfer/deep_gemm.py#L132</a>
+          <p>DeepGEMM scale factor TMA-aligned packed layout，是低精度 group GEMM 的关键。</p>
+        </div>
+        <div class="path">
+          <a href="https://github.com/flashinfer-ai/flashinfer/blob/main/flashinfer/gemm/routergemm.py#L169">flashinfer/gemm/routergemm.py#L169</a>
+          <p>RouterGEMM：看固定模型形状如何做极致特化。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="band">
+      <h2>10. 学习检查清单</h2>
+      <div class="grid-2">
+        <article class="item blue">
+          <h3>能讲清楚</h3>
+          <ul>
+            <li>为什么 FlashInfer GEMM 是“多后端调度层”，不是一个 kernel。</li>
+            <li><code>backend_requirement</code> 和 heuristic 的区别。</li>
+            <li>为什么 TRT-LLM/CuTe DSL 这类 layout 特殊后端不能随意进入 auto。</li>
+            <li>FP4/MXFP8 中 scale layout 为什么比普通 GEMM 更重要。</li>
+            <li>SegmentGEMM 和 GroupGEMM 分别解决哪类 serving 问题。</li>
+          </ul>
+        </article>
+        <article class="item green">
+          <h3>能定位代码</h3>
+          <ul>
+            <li>API 调度：<a href="https://github.com/flashinfer-ai/flashinfer/blob/main/flashinfer/gemm/gemm_base.py"><code>flashinfer/gemm/gemm_base.py</code></a></li>
+            <li>JIT 生成：<a href="https://github.com/flashinfer-ai/flashinfer/blob/main/flashinfer/jit/gemm/core.py"><code>flashinfer/jit/gemm/core.py</code></a></li>
+            <li>Blackwell DSL：<a href="https://github.com/flashinfer-ai/flashinfer/blob/main/flashinfer/gemm/kernels/dense_blockscaled_gemm_sm100.py"><code>flashinfer/gemm/kernels/dense_blockscaled_gemm_sm100.py</code></a></li>
+            <li>DeepGEMM：<a href="https://github.com/flashinfer-ai/flashinfer/blob/main/flashinfer/deep_gemm.py"><code>flashinfer/deep_gemm.py</code></a></li>
+            <li>Router 特化：<a href="https://github.com/flashinfer-ai/flashinfer/blob/main/flashinfer/gemm/routergemm.py"><code>flashinfer/gemm/routergemm.py</code></a></li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="band">
+      <h2>参考文件</h2>
+      <div class="source-list">
+        <a href="https://github.com/flashinfer-ai/flashinfer/blob/main/flashinfer/gemm/gemm_base.py">flashinfer/gemm/gemm_base.py</a>
+        <a href="https://github.com/flashinfer-ai/flashinfer/blob/main/flashinfer/jit/gemm/core.py">flashinfer/jit/gemm/core.py</a>
+        <a href="https://github.com/flashinfer-ai/flashinfer/blob/main/flashinfer/deep_gemm.py">flashinfer/deep_gemm.py</a>
+        <a href="https://github.com/flashinfer-ai/flashinfer/blob/main/flashinfer/gemm/routergemm.py">flashinfer/gemm/routergemm.py</a>
+        <a href="https://github.com/flashinfer-ai/flashinfer/blob/main/flashinfer/gemm/kernels/dense_blockscaled_gemm_sm100.py">flashinfer/gemm/kernels/dense_blockscaled_gemm_sm100.py</a>
+        <a href="https://github.com/flashinfer-ai/flashinfer/blob/main/tests/gemm/test_mm_bf16.py">tests/gemm/test_mm_bf16.py</a>
+        <a href="https://github.com/flashinfer-ai/flashinfer/blob/main/tests/gemm/test_mm_fp4.py">tests/gemm/test_mm_fp4.py</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>整理日期：2026-04-01。本文档偏学习和源码导航；后端支持矩阵以代码为准，后续 FlashInfer 更新可能改变 backend、tile 和 shape 约束。</p>
+  </footer>
+
+  <script>
+    document.querySelectorAll(".tab").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach((tab) => tab.classList.remove("active"));
+        document.querySelectorAll(".tab-panel").forEach((panel) => panel.classList.remove("active"));
+        button.classList.add("active");
+        document.getElementById(`tab-${button.dataset.tab}`).classList.add("active");
+      });
+    });
+  </script>
+</body>
+</html>

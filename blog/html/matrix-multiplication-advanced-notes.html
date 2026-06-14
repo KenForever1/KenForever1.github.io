@@ -1,0 +1,1414 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>矩阵乘法进阶理解：GEMM 优化路线图</title>
+  <style>
+    :root {
+      --ink: #171f20;
+      --muted: #5b6768;
+      --line: #d8dedf;
+      --paper: #fbfcfc;
+      --surface: #ffffff;
+      --blue: #2e63c7;
+      --blue-soft: #eaf1ff;
+      --green: #24745b;
+      --green-soft: #e7f4ee;
+      --amber: #b56a1f;
+      --amber-soft: #fff0dd;
+      --red: #a94442;
+      --red-soft: #fff0ef;
+      --violet: #6656a8;
+      --violet-soft: #f0edfb;
+      --code-bg: #172021;
+      --code-ink: #eef8f4;
+      --shadow: 0 16px 42px rgba(23, 31, 32, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.66;
+      letter-spacing: 0;
+    }
+
+    a {
+      color: var(--blue);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid var(--line);
+      background: rgba(251, 252, 252, 0.94);
+      backdrop-filter: blur(14px);
+    }
+
+    .topbar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 12px 24px;
+    }
+
+    .brand {
+      font-weight: 780;
+      white-space: nowrap;
+    }
+
+    .nav {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .nav a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 32px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+    }
+
+    .nav a:hover {
+      background: var(--green-soft);
+      color: var(--green);
+    }
+
+    header {
+      border-bottom: 1px solid var(--line);
+      background:
+        linear-gradient(110deg, rgba(46, 99, 199, 0.12), transparent 46%),
+        linear-gradient(25deg, rgba(36, 116, 91, 0.12), transparent 48%),
+        var(--surface);
+    }
+
+    .hero {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 58px 24px 44px;
+    }
+
+    .kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+      color: var(--green);
+      font-size: 13px;
+      font-weight: 760;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .kicker::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    h1 {
+      max-width: 980px;
+      margin: 0;
+      font-size: clamp(34px, 5vw, 62px);
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      max-width: 920px;
+      margin: 20px 0 0;
+      color: var(--muted);
+      font-size: 18px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 28px;
+    }
+
+    .signal {
+      min-height: 122px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: var(--shadow);
+    }
+
+    .signal strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+
+    .signal p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    main {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 34px 24px 72px;
+    }
+
+    section {
+      margin-top: 42px;
+    }
+
+    section:first-child {
+      margin-top: 0;
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: 28px;
+      line-height: 1.22;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      line-height: 1.3;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0 0 12px;
+    }
+
+    .lead {
+      max-width: 930px;
+      color: var(--muted);
+      font-size: 17px;
+    }
+
+    .band {
+      padding: 28px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 18px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .item {
+      min-height: 100%;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .item p,
+    li {
+      color: var(--muted);
+    }
+
+    .item.blue {
+      border-color: #c8d6ff;
+      background: var(--blue-soft);
+    }
+
+    .item.green {
+      border-color: #b7d9ca;
+      background: var(--green-soft);
+    }
+
+    .item.amber {
+      border-color: #efc79c;
+      background: var(--amber-soft);
+    }
+
+    .item.violet {
+      border-color: #d5cdf0;
+      background: var(--violet-soft);
+    }
+
+    .item.red {
+      border-color: #edc2bf;
+      background: var(--red-soft);
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 3px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    code {
+      padding: 2px 5px;
+      border-radius: 5px;
+      background: #eef3f1;
+      color: #243230;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 0.92em;
+    }
+
+    pre {
+      overflow-x: auto;
+      margin: 14px 0 0;
+      padding: 16px;
+      border: 1px solid #cbd4d1;
+      border-radius: 8px;
+      background: var(--code-bg);
+      color: var(--code-ink);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    pre code {
+      padding: 0;
+      background: transparent;
+      color: inherit;
+    }
+
+    .ladder {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .stage {
+      position: relative;
+      min-height: 138px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .stage::after {
+      content: "→";
+      position: absolute;
+      top: 50%;
+      right: -16px;
+      transform: translateY(-50%);
+      color: var(--green);
+      font-weight: 900;
+    }
+
+    .stage:last-child::after {
+      display: none;
+    }
+
+    .num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      margin-bottom: 10px;
+      border-radius: 50%;
+      background: var(--green);
+      color: #fff;
+      font-weight: 820;
+      font-size: 13px;
+    }
+
+    .equation {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .formula-card {
+      padding: 18px;
+      border: 1px solid #c8d6ff;
+      border-radius: 8px;
+      background: var(--blue-soft);
+    }
+
+    .formula-big {
+      font-size: clamp(20px, 3vw, 32px);
+      font-weight: 800;
+      overflow-wrap: anywhere;
+    }
+
+    .calc-panel {
+      display: grid;
+      grid-template-columns: minmax(280px, 0.92fr) minmax(360px, 1.08fr);
+      gap: 18px;
+      align-items: start;
+      margin-top: 18px;
+    }
+
+    .controls {
+      display: grid;
+      gap: 15px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .control {
+      display: grid;
+      gap: 8px;
+    }
+
+    label {
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 720;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--blue);
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .metric {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .metric strong {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 5px;
+      color: var(--ink);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 24px;
+      font-weight: 820;
+      overflow-wrap: anywhere;
+    }
+
+    .tile-diagram {
+      display: grid;
+      grid-template-columns: auto auto auto;
+      gap: 14px;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .mini-matrix {
+      display: grid;
+      gap: 3px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8faf9;
+    }
+
+    .mini-title {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 760;
+      text-align: center;
+    }
+
+    .mini-cell {
+      width: 24px;
+      height: 24px;
+      border: 1px solid #d4dcda;
+      border-radius: 4px;
+      background: #fff;
+    }
+
+    .mini-cell.a {
+      background: #dce8ff;
+      border-color: #86a8f5;
+    }
+
+    .mini-cell.b {
+      background: #ffe7ca;
+      border-color: #df9d57;
+    }
+
+    .mini-cell.c {
+      background: #d9efe5;
+      border-color: #7bb89a;
+    }
+
+    .symbol {
+      color: var(--muted);
+      font-size: 24px;
+      font-weight: 860;
+    }
+
+    .bank-grid {
+      display: grid;
+      grid-template-columns: repeat(8, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .bank {
+      min-height: 58px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      text-align: center;
+    }
+
+    .bank.hot {
+      background: var(--amber-soft);
+      border-color: #dd9f5b;
+    }
+
+    .bank.conflict {
+      background: var(--red-soft);
+      border-color: #d98682;
+    }
+
+    .bank-number {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 720;
+    }
+
+    .bank-lanes {
+      display: block;
+      margin-top: 4px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      font-weight: 760;
+      overflow-wrap: anywhere;
+    }
+
+    .pipeline {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .pipe-row {
+      display: grid;
+      grid-template-columns: 100px repeat(6, minmax(0, 1fr));
+      gap: 8px;
+      align-items: center;
+    }
+
+    .pipe-label {
+      color: var(--muted);
+      font-weight: 760;
+      font-size: 13px;
+    }
+
+    .pipe-cell {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 760;
+    }
+
+    .pipe-cell.load {
+      background: var(--blue-soft);
+      border-color: #9cb8ff;
+      color: var(--blue);
+    }
+
+    .pipe-cell.compute {
+      background: var(--green-soft);
+      border-color: #8bc3a7;
+      color: var(--green);
+    }
+
+    .pipe-cell.wait {
+      background: #f2f4f4;
+    }
+
+    .hierarchy {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .h-row {
+      display: grid;
+      grid-template-columns: 160px minmax(0, 1fr) 170px;
+      gap: 12px;
+      align-items: center;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .bar {
+      min-height: 18px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #edf1f1;
+    }
+
+    .bar span {
+      display: block;
+      height: 18px;
+      border-radius: inherit;
+    }
+
+    .bar.global span {
+      width: 100%;
+      background: var(--red);
+    }
+
+    .bar.shared span {
+      width: 62%;
+      background: var(--amber);
+    }
+
+    .bar.register span {
+      width: 30%;
+      background: var(--green);
+    }
+
+    .bar.compute span {
+      width: 82%;
+      background: var(--blue);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #edf3f1;
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    ul {
+      margin: 10px 0 0;
+      padding-left: 20px;
+    }
+
+    .source-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .source-list a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 5px 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      text-decoration: none;
+      font-size: 13px;
+    }
+
+    footer {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 0 24px 44px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 980px) {
+      .hero-grid,
+      .grid-2,
+      .grid-3,
+      .grid-4,
+      .equation,
+      .calc-panel,
+      .ladder {
+        grid-template-columns: 1fr;
+      }
+
+      .stage::after {
+        top: auto;
+        right: 50%;
+        bottom: -19px;
+        transform: translateX(50%) rotate(90deg);
+      }
+
+      .topbar-inner {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .nav {
+        justify-content: flex-start;
+      }
+
+      .tile-diagram {
+        grid-template-columns: 1fr;
+      }
+
+      .symbol {
+        display: none;
+      }
+
+      .h-row,
+      .pipe-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .band {
+        padding: 18px;
+      }
+
+      .metrics {
+        grid-template-columns: 1fr;
+      }
+
+      .bank-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .mini-cell {
+        width: 20px;
+        height: 20px;
+      }
+    }
+
+    @media print {
+      .topbar {
+        position: static;
+      }
+
+      body {
+        background: #fff;
+      }
+
+      .band,
+      .signal,
+      .item {
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">GEMM 进阶理解</div>
+      <nav class="nav" aria-label="页面导航">
+        <a href="#roadmap">路线</a>
+        <a href="#roofline">算术强度</a>
+        <a href="#blocking">分块</a>
+        <a href="#bank">Bank Conflict</a>
+        <a href="#pipeline">双缓冲</a>
+        <a href="#hierarchy">cuBLAS层级</a>
+        <a href="#triton">Triton映射</a>
+      </nav>
+    </div>
+  </div>
+
+  <header>
+    <div class="hero">
+      <p class="kicker">Advanced GEMM Notes</p>
+      <h1>矩阵乘法进阶理解：从 naive kernel 到接近 cuBLAS 的优化路径</h1>
+      <p class="subtitle">
+        这份文档基于你给的 GEMM 文章脉络重写：不是再讲一遍矩阵乘法定义，
+        而是把每一步优化背后的性能动机讲清楚，包括分块、访存复用、bank conflict、double buffering、
+        CUDA/CUTLASS 层级，以及 Triton 里如何表达同一套思想。
+      </p>
+
+      <div class="hero-grid">
+        <article class="signal">
+          <strong>Naive 慢在访存复用差</strong>
+          <p>每个线程算一个 C 元素，K 次乘加都从 global memory 取 A/B。</p>
+        </article>
+        <article class="signal">
+          <strong>分块提高算术强度</strong>
+          <p>一个 A/B tile 被多个输出元素复用，单位字节能产生更多 FLOPs。</p>
+        </article>
+        <article class="signal">
+          <strong>bank conflict 会吃掉 shared memory 优势</strong>
+          <p>shared memory 快，但访问模式不对会串行化。</p>
+        </article>
+        <article class="signal">
+          <strong>双缓冲让搬运和计算重叠</strong>
+          <p>把“load 后 compute”的串行流程改造成流水线。</p>
+        </article>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="roadmap" class="band">
+      <h2>1. 文章主线：GEMM 优化阶梯</h2>
+      <p class="lead">
+        你给的文章重点是 CUDA SGEMM 的逐步优化：先实现正确，再分析瓶颈，
+        然后逐层把数据搬运、线程映射、shared memory、寄存器和流水线安排好。
+      </p>
+
+      <div class="ladder">
+        <article class="stage">
+          <span class="num">1</span>
+          <h3>CPU / naive CUDA</h3>
+          <p>每个 C 元素独立，M×N 个线程，每个线程沿 K 做点积。</p>
+        </article>
+        <article class="stage">
+          <span class="num">2</span>
+          <h3>Shared Memory 分块</h3>
+          <p>C 按 BM×BN 分块，A/B 沿 BK 切片加载到 shared memory。</p>
+        </article>
+        <article class="stage">
+          <span class="num">3</span>
+          <h3>Bank Conflict 修正</h3>
+          <p>改变 shared memory 布局和线程 tile 形状，让一个 warp 的访存更均匀。</p>
+        </article>
+        <article class="stage">
+          <span class="num">4</span>
+          <h3>Double Buffering</h3>
+          <p>使用两份 shared buffer，让下一块加载和当前块计算重叠。</p>
+        </article>
+        <article class="stage">
+          <span class="num">5</span>
+          <h3>cuBLAS / CUTLASS</h3>
+          <p>把 block tile、warp tile、thread tile 做成成熟层级，接近硬件上限。</p>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>2. 从公式到性能问题</h2>
+      <p class="lead">
+        GEMM 公式很短：<code>C = A × B</code>。但高性能实现关注的不是公式本身，
+        而是每个数据从哪里来、被复用多少次、最后什么时候写回。
+      </p>
+
+      <div class="equation">
+        <article class="formula-card">
+          <h3>数学视角</h3>
+          <div class="formula-big">C[i,j] = Σ A[i,k] × B[k,j]</div>
+          <p>每个输出元素是 A 的一行与 B 的一列做内积。</p>
+        </article>
+        <article class="formula-card">
+          <h3>性能视角</h3>
+          <div class="formula-big">快 = 少搬运 + 多复用 + 好并行</div>
+          <p>GEMM 的优化目标是让一次 global memory 读取服务更多 FFMA / MMA 计算。</p>
+        </article>
+      </div>
+
+      <div class="grid-3" style="margin-top: 18px;">
+        <article class="item red">
+          <h3>Naive CUDA</h3>
+          <p>线程数很多，但每个线程都直接读 global A/B，内存带宽很快成为瓶颈。</p>
+        </article>
+        <article class="item amber">
+          <h3>Shared Memory 版本</h3>
+          <p>先把 A/B tile 放进 shared memory，让同一 block 内多个线程共享。</p>
+        </article>
+        <article class="item green">
+          <h3>高性能版本</h3>
+          <p>继续处理 bank conflict、寄存器 tile、双缓冲、warp-level tile 和 Tensor Core。</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="roofline" class="band">
+      <h2>3. 算术强度计算器：为什么 BM/BN 越大越香</h2>
+      <p class="lead">
+        对一个 C tile 来说，每个 K 分块需要加载 A tile 和 B tile。计算量约为
+        <code>2 × BM × BN × BK</code> FLOPs，读取量约为 <code>4 × BK × (BM + BN)</code> bytes。
+        所以算术强度近似为 <code>BM × BN / (2 × (BM + BN))</code> FLOP/byte。
+      </p>
+
+      <div class="calc-panel">
+        <div class="controls">
+          <div class="control">
+            <label for="bm">BM：<span id="bmValue">128</span></label>
+            <input id="bm" type="range" min="16" max="256" step="16" value="128">
+          </div>
+          <div class="control">
+            <label for="bn">BN：<span id="bnValue">128</span></label>
+            <input id="bn" type="range" min="16" max="256" step="16" value="128">
+          </div>
+          <div class="control">
+            <label for="bk">BK：<span id="bkValue">8</span></label>
+            <input id="bk" type="range" min="4" max="64" step="4" value="8">
+          </div>
+          <div class="control">
+            <label for="tmtn">每线程 C tile：TM=TN=<span id="tmtnValue">8</span></label>
+            <input id="tmtn" type="range" min="1" max="16" step="1" value="8">
+          </div>
+        </div>
+
+        <div>
+          <div class="metrics">
+            <div class="metric">
+              <strong>A/B shared memory</strong>
+              <span id="smemBytes">8192 B</span>
+            </div>
+            <div class="metric">
+              <strong>算术强度</strong>
+              <span id="intensity">32.0</span>
+            </div>
+            <div class="metric">
+              <strong>线程数估算</strong>
+              <span id="threads">256</span>
+            </div>
+            <div class="metric">
+              <strong>C 累加寄存器/线程</strong>
+              <span id="regs">64</span>
+            </div>
+          </div>
+          <pre><code>smem_bytes = 4 * BK * (BM + BN)
+flops_per_k_tile = 2 * BM * BN * BK
+arithmetic_intensity = flops_per_k_tile / smem_bytes
+threads_per_block = (BM / TM) * (BN / TN)</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section id="blocking">
+      <h2>4. 分块不是切图，而是安排复用</h2>
+      <p class="lead">
+        一次 block tile 计算中，A 的一小片会服务 BN 方向的多个输出，B 的一小片会服务 BM 方向的多个输出。
+        这就是 shared memory 分块的核心收益。
+      </p>
+
+      <div class="calc-panel">
+        <div class="controls">
+          <div class="control">
+            <label for="kTile">当前 K 分块：<span id="kTileValue">0</span></label>
+            <input id="kTile" type="range" min="0" max="5" step="1" value="0">
+          </div>
+          <div class="control">
+            <label for="cTile">C tile 边长：<span id="cTileValue">4</span></label>
+            <input id="cTile" type="range" min="2" max="6" step="1" value="4">
+          </div>
+          <p>
+            蓝色表示当前加载的 A 子块，橙色表示当前加载的 B 子块，绿色表示正在累计的 C 子块。
+            拖动 K 分块可以看到：C tile 不变，A/B tile 沿 K 方向前进。
+          </p>
+        </div>
+
+        <div>
+          <div class="tile-diagram">
+            <div>
+              <div class="mini-title">A[BM,BK]</div>
+              <div id="blockA" class="mini-matrix"></div>
+            </div>
+            <div class="symbol">×</div>
+            <div>
+              <div class="mini-title">B[BK,BN]</div>
+              <div id="blockB" class="mini-matrix"></div>
+            </div>
+            <div class="symbol">→</div>
+            <div>
+              <div class="mini-title">C[BM,BN]</div>
+              <div id="blockC" class="mini-matrix"></div>
+            </div>
+          </div>
+          <div id="blockExplain" class="formula-card" style="margin-top: 14px;"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="bank" class="band">
+      <h2>5. Bank Conflict：shared memory 也会堵车</h2>
+      <p class="lead">
+        文章里提到 shared memory 通常有 32 个 bank。一个 warp 的 32 个线程如果均匀落到 32 个 bank，
+        一拍就能完成；如果多个线程访问同一个 bank，就会被拆成多拍。
+      </p>
+
+      <div class="grid-2">
+        <div class="controls">
+          <div class="control">
+            <label for="stride">线程访问步长 stride：<span id="strideValue">1</span></label>
+            <input id="stride" type="range" min="1" max="16" step="1" value="1">
+          </div>
+          <p>
+            模拟公式：<code>bank = (lane × stride) mod 32</code>。
+            stride=1 时基本无冲突；stride=2 会形成 2-way conflict；stride=8 会更糟。
+          </p>
+          <div class="metrics">
+            <div class="metric">
+              <strong>最大冲突度</strong>
+              <span id="conflictDegree">1-way</span>
+            </div>
+            <div class="metric">
+              <strong>被访问 bank 数</strong>
+              <span id="usedBanks">32</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div id="bankGrid" class="bank-grid"></div>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top: 18px;">
+        <article class="item amber">
+          <h3>为什么 A tile 可能冲突</h3>
+          <p>如果 A 在 shared memory 中按行放，但计算阶段要按列取，warp 内线程地址会跨步，容易落到重复 bank。</p>
+        </article>
+        <article class="item green">
+          <h3>文章里的修正思路</h3>
+          <p>把 A 的 shared memory 布局改成近似转置的形态，例如 <code>s_a[BK][BM]</code>，让计算阶段访问更顺。</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="pipeline">
+      <h2>6. Double Buffering：把串行改成流水线</h2>
+      <p class="lead">
+        单缓冲是“加载 tile → 同步 → 计算 tile → 同步 → 加载下一个 tile”。双缓冲用两套 shared memory：
+        当前 buffer 用于计算，另一个 buffer 接收下一块数据。
+      </p>
+
+      <div class="pipeline">
+        <div class="pipe-row">
+          <div class="pipe-label">Single Buffer</div>
+          <div class="pipe-cell load">Load 0</div>
+          <div class="pipe-cell compute">Compute 0</div>
+          <div class="pipe-cell load">Load 1</div>
+          <div class="pipe-cell compute">Compute 1</div>
+          <div class="pipe-cell load">Load 2</div>
+          <div class="pipe-cell compute">Compute 2</div>
+        </div>
+        <div class="pipe-row">
+          <div class="pipe-label">Double Buffer</div>
+          <div class="pipe-cell load">Preload 0</div>
+          <div class="pipe-cell compute">Compute 0 + Load 1</div>
+          <div class="pipe-cell compute">Compute 1 + Load 2</div>
+          <div class="pipe-cell compute">Compute 2 + Load 3</div>
+          <div class="pipe-cell compute">Compute 3</div>
+          <div class="pipe-cell wait">Tail</div>
+        </div>
+      </div>
+
+      <div class="grid-3" style="margin-top: 18px;">
+        <article class="item blue">
+          <h3>代价</h3>
+          <p>shared memory 使用量翻倍：从 <code>BK×(BM+BN)</code> 到 <code>2×BK×(BM+BN)</code>。</p>
+        </article>
+        <article class="item green">
+          <h3>收益</h3>
+          <p>LDG 加载不再完全挡住 FFMA 计算，访存和计算可以部分重叠。</p>
+        </article>
+        <article class="item amber">
+          <h3>关键细节</h3>
+          <p>先预取第一块，主循环从下一块开始，最后还要补一次尾部计算。</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="hierarchy" class="band">
+      <h2>7. cuBLAS / CUTLASS 的层级为什么更稳</h2>
+      <p class="lead">
+        文章最后提到 cuBLAS/CUTLASS 的思想：把 GEMM 分解为 thread block tile、warp tile、thread tile，
+        这正好对应 CUDA 编程模型和 GPU 的内存层级。
+      </p>
+
+      <div class="hierarchy">
+        <div class="h-row">
+          <strong>Global Memory</strong>
+          <div class="bar global"><span></span></div>
+          <span>A/B 大矩阵</span>
+        </div>
+        <div class="h-row">
+          <strong>Thread Block Tile</strong>
+          <div class="bar shared"><span></span></div>
+          <span>搬入 shared memory</span>
+        </div>
+        <div class="h-row">
+          <strong>Warp Tile</strong>
+          <div class="bar register"><span></span></div>
+          <span>warp 协作处理</span>
+        </div>
+        <div class="h-row">
+          <strong>Thread Tile</strong>
+          <div class="bar compute"><span></span></div>
+          <span>寄存器累加</span>
+        </div>
+      </div>
+
+      <div class="grid-3" style="margin-top: 18px;">
+        <article class="item green">
+          <h3>block tile</h3>
+          <p>决定一个 thread block 输出多大 C 区域，以及 shared memory 中放多大 A/B tile。</p>
+        </article>
+        <article class="item amber">
+          <h3>warp tile</h3>
+          <p>把 block tile 分给多个 warp，适配 warp-level 指令和 Tensor Core MMA。</p>
+        </article>
+        <article class="item blue">
+          <h3>thread tile</h3>
+          <p>每个线程持有一小块 accumulator，减少 C 的中间读写。</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="triton">
+      <h2>8. 用 Triton 复述这套思想</h2>
+      <p class="lead">
+        Triton 不要求你手动写 shared memory 和 threadIdx，但它的 block program 依然是在做同一件事：
+        一个 program 负责一个 C tile，沿 K 分块加载 A/B，调用 <code>tl.dot</code> 累加。
+      </p>
+
+      <div class="grid-2">
+        <article class="item">
+          <h3>Triton 里对应的概念</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>CUDA/CUTLASS</th>
+                <th>Triton</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>thread block tile</td>
+                <td>一个 program 的 <code>BLOCK_M × BLOCK_N</code></td>
+              </tr>
+              <tr>
+                <td>K 方向分块</td>
+                <td><code>for k in range(0, K, BLOCK_K)</code></td>
+              </tr>
+              <tr>
+                <td>寄存器 accumulator</td>
+                <td><code>acc = tl.zeros(..., tl.float32)</code></td>
+              </tr>
+              <tr>
+                <td>Tensor Core / MMA</td>
+                <td><code>tl.dot(a, b)</code> 在合适 dtype/layout 下映射到底层矩阵指令</td>
+              </tr>
+              <tr>
+                <td>边界判断</td>
+                <td><code>mask</code> 控制越界 load/store</td>
+              </tr>
+            </tbody>
+          </table>
+        </article>
+        <article class="item">
+          <h3>进阶 Triton 骨架</h3>
+          <pre><code>@triton.jit
+def matmul(A, B, C, M, N, K,
+           BLOCK_M: tl.constexpr,
+           BLOCK_N: tl.constexpr,
+           BLOCK_K: tl.constexpr):
+    pid = tl.program_id(0)
+    pid_m = pid // tl.cdiv(N, BLOCK_N)
+    pid_n = pid %  tl.cdiv(N, BLOCK_N)
+
+    offs_m = pid_m * BLOCK_M + tl.arange(0, BLOCK_M)
+    offs_n = pid_n * BLOCK_N + tl.arange(0, BLOCK_N)
+    offs_k = tl.arange(0, BLOCK_K)
+    acc = tl.zeros((BLOCK_M, BLOCK_N), tl.float32)
+
+    for k0 in range(0, K, BLOCK_K):
+        a = tl.load(A + offs_m[:, None] * K + k0 + offs_k[None, :])
+        b = tl.load(B + (k0 + offs_k[:, None]) * N + offs_n[None, :])
+        acc += tl.dot(a, b)
+
+    tl.store(C + offs_m[:, None] * N + offs_n[None, :], acc)</code></pre>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>9. 进阶学习时最容易卡住的点</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>卡点</th>
+            <th>正确理解</th>
+            <th>怎么检查</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Occupancy 越高越好吗</td>
+            <td>不一定。GEMM 常常愿意用更多寄存器换更高复用和算术强度。</td>
+            <td>看 SM 吞吐、eligible warps、memory stall，而不是只看 occupancy。</td>
+          </tr>
+          <tr>
+            <td>shared memory 一定更快吗</td>
+            <td>理论上快，但 bank conflict 会让访问被拆成多拍。</td>
+            <td>看 shared load/store replay 或 bank conflict 相关指标。</td>
+          </tr>
+          <tr>
+            <td>BM/BN 越大越好吗</td>
+            <td>算术强度会上升，但 shared memory、寄存器、block 数和调度都会受影响。</td>
+            <td>用 autotune 或至少扫几组 shape，不要只凭公式。</td>
+          </tr>
+          <tr>
+            <td>Double buffering 一定提速吗</td>
+            <td>当 load latency 能被 compute 覆盖时收益明显，否则可能只是增加资源占用。</td>
+            <td>对比单缓冲版本，看 memory dependency stall 是否下降。</td>
+          </tr>
+          <tr>
+            <td>手写能超过 cuBLAS 吗</td>
+            <td>特定 shape/融合 epilogue 有机会，通用 SGEMM 很难长期胜过成熟库。</td>
+            <td>对齐 dtype、layout、warmup、计时方法后再比较。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="band">
+      <h2>10. 复习清单</h2>
+      <div class="grid-2">
+        <article class="item green">
+          <h3>你应该能说清楚</h3>
+          <ul>
+            <li>为什么 naive CUDA 只用到很少峰值算力。</li>
+            <li>BM、BN、BK、TM、TN 分别控制什么。</li>
+            <li>为什么 <code>BM=BN=128, BK=8</code> 这类配置能提高算术强度。</li>
+            <li>为什么 shared memory 还要关心 bank conflict。</li>
+            <li>double buffering 是怎样把访存和计算重叠的。</li>
+          </ul>
+        </article>
+        <article class="item blue">
+          <h3>下一步可以做</h3>
+          <ul>
+            <li>用 Triton 写一个基础 matmul，再加 autotune。</li>
+            <li>用 Nsight Compute 看 memory throughput、shared replay、SM utilization。</li>
+            <li>把 epilogue 融合进去，例如 bias、scale、ReLU/GELU。</li>
+            <li>对比 naive、shared memory、Triton、cuBLAS 的同 shape 性能。</li>
+            <li>继续学习 Tensor Core MMA 指令和 CUTLASS tile hierarchy。</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="band">
+      <h2>参考来源</h2>
+      <p class="lead">
+        知乎原文页面在当前环境返回 403，因此我阅读了标注原文链接的转载镜像，并按自己的结构重写为学习文档。
+      </p>
+      <div class="source-list">
+        <a href="https://zhuanlan.zhihu.com/p/657632577">知乎原文：CUDA之通用矩阵乘法</a>
+        <a href="https://blog.csdn.net/CV_Autobot/article/details/136979674">转载镜像：CUDA之通用矩阵乘法：从入门到熟练</a>
+        <a href="https://docs.nvidia.com/cuda/cublas/">NVIDIA cuBLAS Documentation</a>
+        <a href="https://triton-lang.org/main/getting-started/tutorials/03-matrix-multiplication.html">Triton Matrix Multiplication Tutorial</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>整理日期：2026-04-31。本文档偏理解和复习，代码片段是概念骨架；真实 kernel 需要结合具体 GPU、dtype、shape、layout 和 profiler 结果做验证。</p>
+  </footer>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    function fmtBytes(bytes) {
+      if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+      if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${bytes} B`;
+    }
+
+    function updateRoofline() {
+      const bm = Number($("bm").value);
+      const bn = Number($("bn").value);
+      const bk = Number($("bk").value);
+      const tmtn = Number($("tmtn").value);
+      const smem = 4 * bk * (bm + bn);
+      const flops = 2 * bm * bn * bk;
+      const intensity = flops / smem;
+      const threads = Math.ceil(bm / tmtn) * Math.ceil(bn / tmtn);
+      const regs = tmtn * tmtn;
+
+      $("bmValue").textContent = bm;
+      $("bnValue").textContent = bn;
+      $("bkValue").textContent = bk;
+      $("tmtnValue").textContent = tmtn;
+      $("smemBytes").textContent = fmtBytes(smem);
+      $("intensity").textContent = `${intensity.toFixed(1)} FLOP/B`;
+      $("threads").textContent = String(threads);
+      $("regs").textContent = String(regs);
+    }
+
+    function buildMini(root, rows, cols) {
+      root.innerHTML = "";
+      root.style.gridTemplateColumns = `repeat(${cols}, 24px)`;
+      for (let i = 0; i < rows; i++) {
+        for (let j = 0; j < cols; j++) {
+          const cell = document.createElement("div");
+          cell.className = "mini-cell";
+          cell.dataset.i = i;
+          cell.dataset.j = j;
+          root.appendChild(cell);
+        }
+      }
+    }
+
+    function updateBlocking() {
+      const kTile = Number($("kTile").value);
+      const cTile = Number($("cTile").value);
+      $("kTileValue").textContent = kTile;
+      $("cTileValue").textContent = cTile;
+
+      document.querySelectorAll("#blockA .mini-cell, #blockB .mini-cell, #blockC .mini-cell").forEach((cell) => {
+        cell.classList.remove("a", "b", "c");
+        const i = Number(cell.dataset.i);
+        const j = Number(cell.dataset.j);
+        const parent = cell.parentElement.id;
+        if (parent === "blockA" && i < cTile && j === kTile) cell.classList.add("a");
+        if (parent === "blockB" && i === kTile && j < cTile) cell.classList.add("b");
+        if (parent === "blockC" && i < cTile && j < cTile) cell.classList.add("c");
+      });
+
+      $("blockExplain").innerHTML =
+        `<strong>当前步骤：</strong> C tile 的 ${cTile}×${cTile} 个 accumulator 保持不动，` +
+        `加载 A 的第 ${kTile} 个 K 切片和 B 的第 ${kTile} 个 K 切片，完成一次 rank-1 / 小块外积式累加。`;
+    }
+
+    function buildBanks() {
+      const grid = $("bankGrid");
+      grid.innerHTML = "";
+      for (let i = 0; i < 32; i++) {
+        const bank = document.createElement("div");
+        bank.className = "bank";
+        bank.innerHTML = `<span class="bank-number">bank ${i}</span><span class="bank-lanes"></span>`;
+        grid.appendChild(bank);
+      }
+    }
+
+    function updateBanks() {
+      const stride = Number($("stride").value);
+      $("strideValue").textContent = stride;
+      const buckets = Array.from({ length: 32 }, () => []);
+      for (let lane = 0; lane < 32; lane++) {
+        buckets[(lane * stride) % 32].push(lane);
+      }
+      let maxConflict = 0;
+      let used = 0;
+      document.querySelectorAll(".bank").forEach((bank, idx) => {
+        bank.classList.remove("hot", "conflict");
+        const lanes = buckets[idx];
+        if (lanes.length > 0) {
+          used += 1;
+          bank.classList.add("hot");
+        }
+        if (lanes.length > 1) bank.classList.add("conflict");
+        maxConflict = Math.max(maxConflict, lanes.length);
+        bank.querySelector(".bank-lanes").textContent = lanes.length ? lanes.join(",") : "-";
+      });
+      $("conflictDegree").textContent = `${maxConflict}-way`;
+      $("usedBanks").textContent = String(used);
+    }
+
+    function bind() {
+      ["bm", "bn", "bk", "tmtn"].forEach((id) => {
+        $(id).addEventListener("input", updateRoofline);
+      });
+      ["kTile", "cTile"].forEach((id) => {
+        $(id).addEventListener("input", updateBlocking);
+      });
+      $("stride").addEventListener("input", updateBanks);
+    }
+
+    buildMini($("blockA"), 8, 8);
+    buildMini($("blockB"), 8, 8);
+    buildMini($("blockC"), 8, 8);
+    buildBanks();
+    bind();
+    updateRoofline();
+    updateBlocking();
+    updateBanks();
+  </script>
+</body>
+</html>
